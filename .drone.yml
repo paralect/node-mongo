@@ -1,0 +1,22 @@
+pipeline:
+  run-mongo-tests:
+    image: node:8.2
+    commands:
+      - sleep 5
+      - ./bin/run.sh
+    when:
+      status: [ failure, success ]
+      event: [pull_request]
+
+  publish-node-mongo:
+    image: plugins/npm
+    username: $$npm_username
+    email: $$npm_email
+    password: $$npm_password
+    when:
+      event: tag
+
+services:
+  mongo:
+    image: mongo:3.4
+branches: [ master, "*:master" ]
