@@ -10,11 +10,10 @@ pipeline:
 
   publish-node-mongo:
     image: plugins/npm
-    username: $$npm_username
-    email: $$npm_email
-    password: $$npm_password
+    secrets: [ npm_username, npm_email, npm_password ]
     when:
-      event: tag
+      event: [ tag ]
+      branches: [ master ]
 
 services:
   mongo:
