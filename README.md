@@ -110,7 +110,7 @@ userService.onPropertiesUpdated(propertiesObject, ({ doc, prevDoc }) => {
 
 ### Documents schema validation
 
-Schema validation is based on jsonschema and can be optionally provided to service. On every update service will validate schema before save data to the database. While schema is optional, we highly recommend use it for every service.
+Schema validation is based on [jsonschema](https://github.com/tdegrunt/jsonschema) or [joi](https://github.com/hapijs/joi) and can be optionally provided to service. On every update service will validate schema before save data to the database. While schema is optional, we highly recommend use it for every service.
 
 ```javascript
 // Define schema in a separate file and export method, that accepts JSON object and execute validate function of
@@ -152,8 +152,38 @@ validator.addSchema(subscriptionSchema, '/Subscription');
 
 module.exports = (obj) => validator.validate(obj, companySchema);
 
+// Use schema when creating service. user.service.js file:
+const schema = require('./user.schema')
+const usersService = db.createService('users', schema);
+```
+
+```javascript
+const Joi = require('Joi');
+
+const subscriptionSchema = {
+  appId: Joi.string(),
+  plan: Joi.string().valid('free', 'standard'),
+  subscribedOn: Joi.date().allow(null),
+  cancelledOn: Joi.date().allow(null),
+};
+
+const companySchema = {
+  _id: Joi.string(),
+  createdOn: Joi.date(),
+  updatedOn: Joi.date(),
+  name: Joi.string(),
+  isOnDemand: Joi.boolean().default(false),,
+  status: Joi.string().valid('active', 'inactive'),
+  subscriptions: Joi.array().items(
+    Joi.object().keys(subscriptionSchema)
+  ),
+};
+
+const joiOptions = {};
+
+module.exports = (obj) => Joi.validate(obj, companySchema, joiOptions);
 
 // Use schema when creating service. user.service.js file:
 const schema = require('./user.schema')
-const usersService = db.createService('users', { validateSchema: schema });
+const usersService = db.createService('users', schema);
 ```

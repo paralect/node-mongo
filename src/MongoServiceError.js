@@ -1,8 +1,9 @@
 class MongoServiceError extends Error {
-  constructor(code, message) {
+  constructor(code, message, error) {
     super(message);
     this.name = 'MongoServiceError';
     this.code = code;
+    this.error = error;
   }
 }
 
