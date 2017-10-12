@@ -1,3 +1,7 @@
+[![Build Status](http://product-stack-ci.paralect.com/api/badges/paralect/node-mongo/status.svg)](http://product-stack-ci.paralect.com/paralect/node-mongo)
+
+[![npm version](https://badge.fury.io/js/%40paralect%2Fnode-mongo.svg)](https://badge.fury.io/js/%40paralect%2Fnode-mongo)
+
 # Handy MongoDB layer for Node.JS 8
 
 Currently based on [monk](https://github.com/Automattic/monk).
@@ -110,7 +114,45 @@ userService.onPropertiesUpdated(propertiesObject, ({ doc, prevDoc }) => {
 
 ### Documents schema validation
 
-Schema validation is based on [jsonschema](https://github.com/tdegrunt/jsonschema) or [joi](https://github.com/hapijs/joi) and can be optionally provided to service. On every update service will validate schema before save data to the database. While schema is optional, we highly recommend use it for every service.
+Schema validation is based on [joi](https://github.com/hapijs/joi) and can be optionally provided to service. On every update service will validate schema before save data to the database. While schema is optional, we highly recommend use it for every service.
+We believe that `joi` is one of the best libraries for validation of the schema, because it allows us to do the following things:
+1) Validate the schemas with a variety of variations in data types
+2) It is easy to redefine the text for validation errors
+3) Write conditional validations for fields when some conditions are met for other fields
+4) Do some transformations of the values (for example for string fields you can do `trim`)
+
+```javascript
+const Joi = require('Joi');
+
+const subscriptionSchema = {
+  appId: Joi.string(),
+  plan: Joi.string().valid('free', 'standard'),
+  subscribedOn: Joi.date().allow(null),
+  cancelledOn: Joi.date().allow(null),
+};
+
+const companySchema = {
+  _id: Joi.string(),
+  createdOn: Joi.date(),
+  updatedOn: Joi.date(),
+  name: Joi.string(),
+  isOnDemand: Joi.boolean().default(false),,
+  status: Joi.string().valid('active', 'inactive'),
+  subscriptions: Joi.array().items(
+    Joi.object().keys(subscriptionSchema)
+  ),
+};
+
+const joiOptions = {};
+
+module.exports = (obj) => Joi.validate(obj, companySchema, joiOptions);
+
+// Use schema when creating service. user.service.js file:
+const schema = require('./user.schema')
+const usersService = db.createService('users', schema);
+```
+
+Also, for the validation of a data schema, you can use the library [jsonschema](https://github.com/tdegrunt/jsonschema), which can also be passed as the second parameter of the function `createService`.
 
 ```javascript
 // Define schema in a separate file and export method, that accepts JSON object and execute validate function of
@@ -151,37 +193,6 @@ const companySchema = {
 validator.addSchema(subscriptionSchema, '/Subscription');
 
 module.exports = (obj) => validator.validate(obj, companySchema);
-
-// Use schema when creating service. user.service.js file:
-const schema = require('./user.schema')
-const usersService = db.createService('users', schema);
-```
-
-```javascript
-const Joi = require('Joi');
-
-const subscriptionSchema = {
-  appId: Joi.string(),
-  plan: Joi.string().valid('free', 'standard'),
-  subscribedOn: Joi.date().allow(null),
-  cancelledOn: Joi.date().allow(null),
-};
-
-const companySchema = {
-  _id: Joi.string(),
-  createdOn: Joi.date(),
-  updatedOn: Joi.date(),
-  name: Joi.string(),
-  isOnDemand: Joi.boolean().default(false),,
-  status: Joi.string().valid('active', 'inactive'),
-  subscriptions: Joi.array().items(
-    Joi.object().keys(subscriptionSchema)
-  ),
-};
-
-const joiOptions = {};
-
-module.exports = (obj) => Joi.validate(obj, companySchema, joiOptions);
 
 // Use schema when creating service. user.service.js file:
 const schema = require('./user.schema')
