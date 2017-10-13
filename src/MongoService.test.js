@@ -1,4 +1,9 @@
 const chai = require('chai');
+const Joi = require('joi');
+const { Validator } = require('jsonschema');
+
+const validator = new Validator();
+
 const MongoService = require('./MongoService');
 const config = require('./config');
 
@@ -6,13 +11,45 @@ chai.should();
 
 const db = require('./').connect(config.mongo.connection);
 
+const joiSchema = {
+  _id: Joi.string(),
+  firstName: Joi.string().allow(''),
+  lastName: Joi.string(),
+};
+
+const jsonSchema = {
+  id: '/User',
+  type: 'object',
+  properties: {
+    _id: { type: 'String' },
+    firstName: { type: 'String' },
+    lastName: { type: 'String', minLength: 1 },
+  },
+  required: ['lastName'],
+};
+
+const validateJoiSchema = obj => Joi.validate(obj, joiSchema, { allowUnknown: true });
+
+const validateJsonSchema = obj => validator.validate(obj, jsonSchema);
+
 module.exports = () => {
   describe('MongoService', () => {
-    const userService = db.createService(`users-${new Date().getTime()}`);
-    const findUserService = db.createService(`users-${new Date().getTime()}`);
+    const userServiceJoiSchema = db.createService(
+      `users-joi-schema-${Date.now()}`,
+      validateJoiSchema,
+    );
+
+    const userServiceJsonSchema = db.createService(
+      `users-json-schema-${Date.now()}`,
+      validateJsonSchema,
+    );
+
+    const userService = db.createService(`users-${Date.now()}`);
+    const findUserService = db.createService(`users-${Date.now() + 1}`);
 
     after(async () => {
       await Promise.all([
+        userServiceJoiSchema._collection.drop(),
         userService._collection.drop(),
         findUserService._collection.drop(),
       ]);
@@ -176,6 +213,44 @@ module.exports = () => {
       });
       const userDoc = await userService.findOne({ _id });
       userDoc.name.should.be.equal('Alice');
+    });
+
+    it('should return an error that the data does not satisfy the jsonschema schema', async () => {
+      let errors;
+      try {
+        await userServiceJsonSchema.create({
+          firstName: 'Evgeny',
+          lastName: '',
+        });
+      } catch (err) {
+        errors = err.error.details;
+      }
+
+      errors.length.should.be.equal(1);
+      errors[0].name.should.be.equal('minLength');
+    });
+
+    it('should return an error that the data does not satisfy the joi schema', async () => {
+      let errors;
+      try {
+        await userServiceJoiSchema.create({
+          firstName: 'Evgeny',
+          lastName: '',
+        });
+      } catch (err) {
+        errors = err.error.details;
+      }
+
+      errors.length.should.be.equal(1);
+      errors[0].type.should.be.equal('any.empty');
+    });
+
+    it('should successfully create new user', async () => {
+      const user = await userServiceJoiSchema.create({
+        firstName: 'Evgeny',
+        lastName: 'Zhivitsa',
+      });
+      user.firstName.should.be.equal('Evgeny');
     });
   });
 };

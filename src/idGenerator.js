@@ -1,5 +1,5 @@
 const monk = require('monk');
 
-module.exports.generate = function generate() {
+exports.generate = () => {
   return monk.id().toHexString();
 };

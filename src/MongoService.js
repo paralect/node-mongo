@@ -25,11 +25,21 @@ class MongoService extends MongoQueryService {
   _validateSchema(entity) {
     if (this._options.validateSchema) {
       const validationResult = this._options.validateSchema(entity);
-      if (validationResult.errors && validationResult.errors.length > 0) {
-        logger.error('Schema invalid', JSON.stringify(validationResult.errors, 0, 4));
+
+      const errors = validationResult.errors || validationResult.error;
+      const isJoi = errors ? errors.isJoi : false;
+
+      if (errors && (isJoi || errors.length > 0)) {
+        const errorsObj = {
+          isJoi,
+          details: isJoi ? errors.details : errors,
+        };
+        logger.error('Schema invalid', JSON.stringify(errorsObj.details, 0, 4));
+
         throw new MongoServiceError(
           MongoServiceError.INVALID_SCHEMA,
-          `Document schema is invalid: ${JSON.stringify(validationResult.errors)}`,
+          `Document schema is invalid: ${JSON.stringify(errorsObj.details)}`,
+          errorsObj,
         );
       }
     }
