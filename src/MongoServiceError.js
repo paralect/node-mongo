@@ -10,5 +10,6 @@ class MongoServiceError extends Error {
 MongoServiceError.NOT_FOUND = 'NOT_FOUND';
 MongoServiceError.INVALID_SCHEMA = 'INVALID_SCHEMA';
 MongoServiceError.MORE_THAN_ONE = 'MORE_THAN_ONE';
+MongoServiceError.CANNOT_OVERRIDE = 'CAN_NOT_OVERRIDE';
 
 module.exports = MongoServiceError;

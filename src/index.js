@@ -1,5 +1,7 @@
 const MongoService = require('./MongoService');
 const MongoQueryService = require('./MongoQueryService');
+const MongoServiceError = require('./MongoServiceError');
+
 const monk = require('monk');
 const idGenerator = require('./idGenerator');
 
@@ -53,9 +55,25 @@ const connect = (connectionString) => {
     return new MongoService(collection, opt);
   };
 
+  db.configureService = (name, method, options = {}) => {
+    if (MongoService.prototype[name]) {}
+  };
+
   db.createQueryService = (collectionName) => {
     const collection = db.get(collectionName, { castIds: false });
     return new MongoQueryService(collection);
+  };
+
+  // Add additional methods for query service
+  db.configureQueryService = (name, method) => {
+    if (MongoQueryService.prototype[name]) {
+      throw new MongoServiceError(
+        MongoServiceError.CANNOT_OVERRIDE,
+        `Method ${name} cannot be overridden.`,
+      );
+    }
+
+    MongoQueryService.prototype[name] = method;
   };
 
   return db;
