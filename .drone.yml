@@ -8,6 +8,17 @@ pipeline:
       status: [ failure, success ]
       event: [pull_request]
 
+  run-coveralls:
+    image: node:8.2
+    commands:
+      - sleep 5
+      - ./bin/run-coveralls.sh
+    environment:
+      - COVERALLS_REPO_TOKEN=$$coveralls_token
+    when:
+      event: [ pull_request, push ]
+      branches: [ master ]
+
   publish-node-mongo:
     image: plugins/npm
     secrets: [ npm_username, npm_email, npm_password ]

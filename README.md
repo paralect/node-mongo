@@ -1,6 +1,4 @@
-[![Build Status](http://product-stack-ci.paralect.com/api/badges/paralect/node-mongo/status.svg)](http://product-stack-ci.paralect.com/paralect/node-mongo)
-
-[![npm version](https://badge.fury.io/js/%40paralect%2Fnode-mongo.svg)](https://badge.fury.io/js/%40paralect%2Fnode-mongo)
+[![Build Status](http://product-stack-ci.paralect.com/api/badges/paralect/node-mongo/status.svg)](http://product-stack-ci.paralect.com/paralect/node-mongo) [![npm version](https://badge.fury.io/js/%40paralect%2Fnode-mongo.svg)](https://badge.fury.io/js/%40paralect%2Fnode-mongo) [![Coverage Status](https://coveralls.io/repos/github/paralect/node-mongo/badge.svg?branch=ezhivitsa-coveralls)](https://coveralls.io/github/paralect/node-mongo?branch=ezhivitsa-coveralls)
 
 # Handy MongoDB layer for Node.JS 8
 
