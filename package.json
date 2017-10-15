@@ -9,7 +9,7 @@
     "test": "run-s test:*",
     "test:eslint": "eslint ./",
     "test:mocha": "NODE_ENV=test mocha --exit --recursive -c -R spec src/index.test.js",
-    "test-coveralls": "NODE_ENV=test istanbul cover _mocha --report lcovonly -- --exit --recursive -R spec src/index.test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "coveralls": "istanbul cover _mocha --report lcovonly -- --exit --recursive -R spec src/index.test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
   "keywords": [
     "mongo",
