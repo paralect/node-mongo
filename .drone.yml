@@ -2,7 +2,6 @@ pipeline:
   run-mongo-tests:
     image: node:8.2
     commands:
-      - sleep 5
       - ./bin/run.sh
     when:
       status: [ failure, success ]
@@ -10,11 +9,10 @@ pipeline:
 
   run-coveralls:
     image: node:8.2
+    secrets: [ coveralls_service_name, coveralls_repo_token ]
     commands:
       - sleep 5
       - ./bin/run-coveralls.sh
-    environment:
-      - COVERALLS_REPO_TOKEN=$$coveralls_token
     when:
       event: [ pull_request, push ]
       branches: [ master ]
