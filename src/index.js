@@ -55,8 +55,13 @@ const connect = (connectionString) => {
     return new MongoService(collection, opt);
   };
 
-  db.configureService = (name, method, options = {}) => {
-    if (MongoService.prototype[name]) {}
+  /**
+   * @desc Add additional methods for mongo service
+   * @param {string} name
+   * @param {Function} method
+   */
+  db.setServiceMethod = (name, method) => {
+    MongoQueryService.prototype[name] = method;
   };
 
   db.createQueryService = (collectionName) => {
@@ -64,15 +69,12 @@ const connect = (connectionString) => {
     return new MongoQueryService(collection);
   };
 
-  // Add additional methods for query service
-  db.configureQueryService = (name, method) => {
-    if (MongoQueryService.prototype[name]) {
-      throw new MongoServiceError(
-        MongoServiceError.CANNOT_OVERRIDE,
-        `Method ${name} cannot be overridden.`,
-      );
-    }
-
+  /**
+   * @desc Add additional methods for mongo query service
+   * @param {string} name
+   * @param {Function} method
+   */
+  db.setQueryServiceMethod = (name, method) => {
     MongoQueryService.prototype[name] = method;
   };
 

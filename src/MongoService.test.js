@@ -121,18 +121,6 @@ module.exports = () => {
       });
     });
 
-    it('it should return paged result if page > 0', async () => {
-      // create separate service to stricly check count
-      // and do not mix with other tests
-      await findUserService.create([{ name: 'Bob' }, { name: 'Alice' }, { name: 'Nick' }]);
-
-      const options = { page: 1, perPage: 2, sort: { name: 1 } };
-      const res = await findUserService.find({}, options);
-      res.results.length.should.be.equal(2);
-      res.pagesCount.should.be.equal(2);
-      res.count.should.be.equal(3);
-    });
-
     it('should create a document', async () => {
       const user = { name: 'Bob' };
       const doc = await userService.createOrUpdate({ _id: '1' }, (dbUser) => {
