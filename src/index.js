@@ -1,6 +1,5 @@
 const MongoService = require('./MongoService');
 const MongoQueryService = require('./MongoQueryService');
-const MongoServiceError = require('./MongoServiceError');
 
 const monk = require('monk');
 const idGenerator = require('./idGenerator');

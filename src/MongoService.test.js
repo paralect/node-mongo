@@ -240,5 +240,24 @@ module.exports = () => {
       });
       user.firstName.should.be.equal('Evgeny');
     });
+
+    it('should return an error that update function must be specified', async () => {
+      try {
+        await userService.update({ name: 'Magneto' }, { name: 'Professor X' });
+      } catch (err) {
+        err.message.should.be.equal('updateFn must be a function');
+      }
+    });
+
+    it('should return an error that document not found', async () => {
+      try {
+        await userService.update({ name: 'Magneto' }, (u) => {
+          const user = u;
+          user.name = 'Professor X';
+        });
+      } catch (err) {
+        err.message.should.be.equal('Document not found while updating. Query: {"name":"Magneto"}');
+      }
+    });
   });
 };
