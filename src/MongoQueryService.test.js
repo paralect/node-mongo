@@ -1,12 +1,14 @@
 const chai = require('chai');
 
-// const MongoService = require('./MongoService');
-// const MongoQueryService = require('./MongoQueryService');
 const config = require('./config');
 
 chai.should();
 
 const db = require('./').connect(config.mongo.connection);
+
+db.setQueryServiceMethod('findById', (service, id) => {
+  return service.findOne({ _id: id });
+});
 
 module.exports = () => {
   describe('MongoQueryService', () => {
@@ -104,6 +106,13 @@ module.exports = () => {
     it('should generate id for document', () => {
       const id = userQueryService.generateId();
       id.length.should.be.equal(24);
+    });
+
+    it('should return user by id using custom method findById', async () => {
+      const user = await userService.create({ name: 'Jean Grey' });
+
+      const res = await userQueryService.findById(user._id);
+      res.name.should.be.equal('Jean Grey');
     });
   });
 };

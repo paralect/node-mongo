@@ -60,11 +60,14 @@ const connect = (connectionString) => {
    * @param {Function} method
    */
   db.setServiceMethod = (name, method) => {
-    MongoQueryService.prototype[name] = method;
+    MongoService.prototype[name] = function customMethod(...args) {
+      return method.apply(this, [this, ...args]);
+    };
   };
 
   db.createQueryService = (collectionName) => {
     const collection = db.get(collectionName, { castIds: false });
+
     return new MongoQueryService(collection);
   };
 
@@ -74,7 +77,9 @@ const connect = (connectionString) => {
    * @param {Function} method
    */
   db.setQueryServiceMethod = (name, method) => {
-    MongoQueryService.prototype[name] = method;
+    MongoQueryService.prototype[name] = function customMethod(...args) {
+      return method.apply(this, [this, ...args]);
+    };
   };
 
   return db;

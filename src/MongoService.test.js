@@ -11,6 +11,11 @@ chai.should();
 
 const db = require('./').connect(config.mongo.connection);
 
+db.setServiceMethod('createByName', async (service, name) => {
+  const res = await service.create({ name });
+  return res;
+});
+
 const joiSchema = {
   _id: Joi.string(),
   firstName: Joi.string().allow(''),
@@ -251,13 +256,15 @@ module.exports = () => {
 
     it('should return an error that document not found', async () => {
       try {
-        await userService.update({ name: 'Magneto' }, (u) => {
-          const user = u;
-          user.name = 'Professor X';
-        });
+        await userService.update({ name: 'Magneto' }, () => {});
       } catch (err) {
         err.message.should.be.equal('Document not found while updating. Query: {"name":"Magneto"}');
       }
+    });
+
+    it('should create user using custom method createByName', async () => {
+      const user = await userService.createByName('Quicksilver');
+      user.name.should.be.equal('Quicksilver');
     });
   });
 };
