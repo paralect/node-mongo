@@ -10,7 +10,8 @@ There are few reasons, why we think this layer could be helpful to many projects
 
 1. Every update method emits `*.updated`, `*.created`, `*.removed` events, which allow to listen for the database changes and perform business logic based on this updates. That could help keep your entities weakly coupled with each other.
 2. Implements more high level api, such as paging.
-3. Implements database schema validation based on [jsonschema](https://github.com/tdegrunt/jsonschema). See examples below for more details.
+3. Implements database schema validation based on [joi](https://github.com/hapijs/joi). See examples below for more details.
+4. Allows you to add custom methods for services that are needed on a particular project. See examples below for more details.
 
 ## Usage example
 
@@ -195,4 +196,21 @@ module.exports = (obj) => validator.validate(obj, companySchema);
 // Use schema when creating service. user.service.js file:
 const schema = require('./user.schema')
 const usersService = db.createService('users', schema);
+```
+
+In order to add your own methods to the services, you can use the functions `setServiceMethod` and `setQueryServiceMethod` of the object `db`. This function takes the function name as the first parameter and the custom function for the service as the second parameter. The custom function takes the service itself as the first parameter, and the remaining parameters are the parameters that are passed when this custom function is called.
+
+```javascript
+const connectionString = `mongodb://localhost:27017/home-db`;
+const db = require('./').connect(connectionString);
+
+db.setQueryServiceMethod('findById', (service, id) => {
+  return service.findOne({ _id: id });
+});
+
+// Create entity service
+const usersQueryService = db.createQueryService('users');
+
+// find user by id
+const user = await usersQueryService.findById('123')
 ```
