@@ -11,6 +11,11 @@ chai.should();
 
 const db = require('./').connect(config.mongo.connection);
 
+db.setServiceMethod('createByName', async (service, name) => {
+  const res = await service.create({ name });
+  return res;
+});
+
 const joiSchema = {
   _id: Joi.string(),
   firstName: Joi.string().allow(''),
@@ -119,18 +124,6 @@ module.exports = () => {
           resolve();
         });
       });
-    });
-
-    it('it should return paged result if page > 0', async () => {
-      // create separate service to stricly check count
-      // and do not mix with other tests
-      await findUserService.create([{ name: 'Bob' }, { name: 'Alice' }, { name: 'Nick' }]);
-
-      const options = { page: 1, perPage: 2, sort: { name: 1 } };
-      const res = await findUserService.find({}, options);
-      res.results.length.should.be.equal(2);
-      res.pagesCount.should.be.equal(2);
-      res.count.should.be.equal(3);
     });
 
     it('should create a document', async () => {
@@ -251,6 +244,27 @@ module.exports = () => {
         lastName: 'Zhivitsa',
       });
       user.firstName.should.be.equal('Evgeny');
+    });
+
+    it('should return an error that update function must be specified', async () => {
+      try {
+        await userService.update({ name: 'Magneto' }, { name: 'Professor X' });
+      } catch (err) {
+        err.message.should.be.equal('updateFn must be a function');
+      }
+    });
+
+    it('should return an error that document not found', async () => {
+      try {
+        await userService.update({ name: 'Magneto' }, () => {});
+      } catch (err) {
+        err.message.should.be.equal('Document not found while updating. Query: {"name":"Magneto"}');
+      }
+    });
+
+    it('should create user using custom method createByName', async () => {
+      const user = await userService.createByName('Quicksilver');
+      user.name.should.be.equal('Quicksilver');
     });
   });
 };

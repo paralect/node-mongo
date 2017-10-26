@@ -1,5 +1,6 @@
 const MongoService = require('./MongoService');
 const MongoQueryService = require('./MongoQueryService');
+
 const monk = require('monk');
 const idGenerator = require('./idGenerator');
 
@@ -53,9 +54,32 @@ const connect = (connectionString) => {
     return new MongoService(collection, opt);
   };
 
+  /**
+   * @desc Add additional methods for mongo service
+   * @param {string} name
+   * @param {Function} method
+   */
+  db.setServiceMethod = (name, method) => {
+    MongoService.prototype[name] = function customMethod(...args) {
+      return method.apply(this, [this, ...args]);
+    };
+  };
+
   db.createQueryService = (collectionName) => {
     const collection = db.get(collectionName, { castIds: false });
+
     return new MongoQueryService(collection);
+  };
+
+  /**
+   * @desc Add additional methods for mongo query service
+   * @param {string} name
+   * @param {Function} method
+   */
+  db.setQueryServiceMethod = (name, method) => {
+    MongoQueryService.prototype[name] = function customMethod(...args) {
+      return method.apply(this, [this, ...args]);
+    };
   };
 
   return db;
