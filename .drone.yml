@@ -14,7 +14,7 @@ pipeline:
       - sleep 5
       - ./bin/run-coveralls.sh
     when:
-      event: [ pull_request, push ]
+      event: [ pull_request ]
       branches: [ master ]
 
   publish-node-mongo:
