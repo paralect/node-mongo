@@ -65,10 +65,10 @@ const connect = (connectionString) => {
     };
   };
 
-  db.createQueryService = (collectionName) => {
+  db.createQueryService = (collectionName, options = {}) => {
     const collection = db.get(collectionName, { castIds: false });
 
-    return new MongoQueryService(collection);
+    return new MongoQueryService(collection, options);
   };
 
   /**

@@ -9,7 +9,7 @@ class MongoQueryService {
   }
 
   /**
-  * @return {string} name of the colleciton
+  * @return {string} name of the collection
   */
   get name() {
     return this._collection.collectionName;
