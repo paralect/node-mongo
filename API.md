@@ -21,12 +21,13 @@
   - [`on(eventName, handler)`](#oneventname-handler)
   - [`create(objects)`](#createobjects)
   - [`update(query, updateFn)`](#updatequery-updatefn)
+  - [`atomic.update(query, updateObject, [updateOptions])`](#atomicupdatequery-updateObject-updateoptions)
   - [`remove(query)`](#removequery)
   - [`ensureIndex(index, options)`](#ensureindexindex-options)
   - [`createOrUpdate(query, updateFn)`](#createorupdatequery-updatefn)
-  - [`findOneAndUpdate(query, update, options)`](#findoneandupdatequery-update-options)
+  - [`findOneAndUpdate(query, update, [options])`](#findoneandupdatequery-update-options)
+  - [`atomic.findOneAndUpdate(query, update, [updateOptions])`](#atomicfindoneandupdatequery-update-updateoptions)
   - [`onPropertiesUpdated(properties, callback)`](#onpropertiesupdatedproperties-callback)
-  - [`deepCompare(data, initialData, properties)`](#deepcomparedata-initialdata-properties)
 
 ## Node Mongo
 
@@ -303,3 +304,168 @@ try {
 ## Mongo Service
 
 Mongo Service extends [Mongo Query Service](#mongo-query-service), therefore instance of this service has all methods of the [Mongo Query Service](#mongo-query-service).
+
+### `once(eventName, handler)`
+
+Subscribe to database change events only once. The first time evenName is triggered listener handler is removed and then invoked.
+
+#### Arguments:
+- `eventName` - *(String)* name of the database event
+- `handler` - *(function)* function event handler
+
+#### Returns:
+Returns a reference to the `EventEmitter`.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+userService.once('updated', ({ doc, prevDoc }) => {
+});
+```
+
+### `on(eventName, handler)`
+
+Subscribe to database change events.
+
+#### Arguments:
+- `eventName` - *(String)* name of the database event
+- `handler` - *(function)* function event handler
+
+#### Returns:
+Returns a reference to the `EventEmitter`.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+userService.on('updated', ({ doc, prevDoc }) => {
+});
+```
+
+### `create(objects)`
+
+Async function that insert one object or array of the objects to the database. Publishes `created` event {doc}. Sets createdOn to the current date. If the schema for validation specified in the moment of creating service, then it is used within this method.
+
+#### Arguments:
+- `objects` - *(Object[]|Object)* Object or array of objects to create
+
+#### Returns:
+Object or array of created objects
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+await userService.create([{ name: 'Bob' }, { name: 'Alice' }]);
+```
+
+### `update(query, updateFn)`
+
+Async function that modifies entity found by query in the database. Publishes `updated` event {doc, prevDoc}. Sets updatedOn to the current date. If the schema for validation specified in the moment of creating service, then it is used within this method.
+
+#### Arguments:
+- `query` - *(Object)* mongo search query
+- `updateFn` - *(function)* function, that recieves document to be updated
+
+#### Returns:
+Updated document.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+const updatedUser = await usersService.update({ _id: '1'}, (doc) => {
+  doc.name = 'Alex';
+});
+```
+
+### `atomic.update(query, updateObject, [updateOptions])`
+
+This method is a simple wrapper of the `update` method of the `monk`. You can find documention [here](https://automattic.github.io/monk/docs/collection/update.html). This method doesn't publish `updated` event.
+
+### `remove(query)`
+
+Async function to remove one or many documents found by query.
+
+#### Arguments:
+- `query` - *(Object)* mongo search query
+
+#### Returns:
+Removed documents.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+const removeUsers = await usersService.update({ name: 'Alex' });
+```
+
+### `ensureIndex(index, options)`
+
+Create or check index existence. This method is a wrapper of the `createIndex` method of the `monk`. You can find documention [here](https://automattic.github.io/monk/docs/collection/createIndex.html). This method omits error.
+
+### `createOrUpdate(query, updateFn)`
+
+Async method, that updates documents or create new document if there are no documents that satisfy the condition.
+
+#### Arguments:
+- `query` - *(Object)* mongo search query
+- `updateFn` - *(function)* function, that recieves document to be updated
+
+#### Returns:
+Updated or created document.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+const userHelen = await usersService.createOrUpdate({ _id: 1 }, (doc) => {
+  doc.name = 'Helen';
+});
+```
+
+### `findOneAndUpdate(query, update, [options])`
+Update or create new document using `update` object. This method emits `updated` or `created` event.
+
+#### Arguments:
+- `query` - *(Object)* mongo search query
+- `update` - *(Object)* update operations to be performed on the document
+- `options` - *(Object)* optional object with options
+  - `returnOriginal` - *(Boolean)* return original or updated document
+
+#### Return:
+Promise that resolves document.
+
+#### Example:
+```javascript
+const usersService = db.createService('users');
+const newUser = await usersService.findOneAndUpdate({ name: 'Bob'}, {
+  $set: {
+    name: 'Alice',
+  },
+});
+```
+
+### `atomic.findOneAndUpdate(query, update, [updateOptions])`
+
+This method is a simple wrapper of the `findOneAndUpdate` method of the `monk`. You can find documention [here](https://automattic.github.io/monk/docs/collection/findOneAndUpdate.html). This method doesn't publish any event.
+
+### `onPropertiesUpdated(properties, callback)`
+
+Deep compare doc & prevDoc from `updated` event. When something changed - executes callback.
+
+#### Arguments:
+- `properties` - *(Object[]|Object)* properties to compare
+- `callback` - *(function)* executes callback if something changed
+
+#### Returns:
+Returns a reference to the `EventEmitter`.
+
+#### Example:
+```javascript
+// Listen to the value changes between original and updated document
+// Callback executed only if user lastName or firstName are different in current or updated document
+userService.onPropertiesUpdated(['user.firstName', 'user.lastName'], ({ doc, prevDoc }) => {
+});
+
+// Listen to the value changes between original and updated document
+// Callback executed only if user first name changes from `Bob` to something else
+const propertiesObject = { 'user.firstName': 'Bob' };
+userService.onPropertiesUpdated(propertiesObject, ({ doc, prevDoc }) => {
+});
+```
