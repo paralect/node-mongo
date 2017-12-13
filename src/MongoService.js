@@ -155,7 +155,7 @@ class MongoService extends MongoQueryService {
   * @param options {Object} - index options
   */
   ensureIndex(index, options) {
-    return this._collection.ensureIndex(index, options)
+    return this._collection.createIndex(index, options)
       .catch((err) => {
         this.logger.warn(err);
       });
