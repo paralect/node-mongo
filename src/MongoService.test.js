@@ -266,5 +266,21 @@ module.exports = () => {
       const user = await userService.createByName('Quicksilver');
       user.name.should.be.equal('Quicksilver');
     });
+
+    it('should handle changes of the specified properties', (done) => {
+      const name = 'Wanda Marya Maximoff';
+      const pseudonym = 'Scarlet Witch';
+      userService.createByName(name);
+
+      const propertiesObject = { name: pseudonym };
+      userService.onPropertiesUpdated(propertiesObject, ({ doc, prevDoc }) => {
+        doc.name.should.be.equal(pseudonym);
+        done();
+      });
+
+      userService.update({ name }, (doc) => {
+        Object.assign(doc, { name: pseudonym });
+      });
+    });
   });
 };

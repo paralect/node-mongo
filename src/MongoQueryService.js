@@ -12,7 +12,7 @@ class MongoQueryService {
   * @return {string} name of the collection
   */
   get name() {
-    return this._collection.collectionName;
+    return this._collection.name;
   }
 
   /**
@@ -140,7 +140,7 @@ class MongoQueryService {
     tick: 50,
     expectNoDocs: false,
   }) {
-    let totalTicked;
+    let totalTicked = 0;
     let intervalId;
     const self = this;
     return new Promise((resolve, reject) => {

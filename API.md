@@ -1,4 +1,4 @@
-# 0.3.0 API Reference
+# 0.3.1 API Reference
 
 - [Node Mongo](#nodemongo)
   - [`connect(connectionString)`](#connect-connectionstring)
@@ -464,7 +464,7 @@ userService.onPropertiesUpdated(['user.firstName', 'user.lastName'], ({ doc, pre
 });
 
 // Listen to the value changes between original and updated document
-// Callback executed only if user first name changes from `Bob` to something else
+// Callback executed only if user first name changes to `Bob`
 const propertiesObject = { 'user.firstName': 'Bob' };
 userService.onPropertiesUpdated(propertiesObject, ({ doc, prevDoc }) => {
 });
