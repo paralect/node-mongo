@@ -1,3 +1,7 @@
+## v0.3.1 (2017-12-16)
+
+* Stop using deprecated method `ensureIndex` of the `monk`.
+
 ## v0.3.0 (2017-10-24)
 
 * Add ability to create custom methods for service and query service.
