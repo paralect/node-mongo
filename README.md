@@ -15,7 +15,7 @@ There are few reasons, why we think this layer could be helpful to many projects
 
 ## API
 
-See the detailed [API Reference](https://github.com/paralect/node-mongo/API.md).
+See the detailed [API Reference](https://github.com/paralect/node-mongo/blob/master/API.md).
 
 ## LICENCE
 
