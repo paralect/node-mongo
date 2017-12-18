@@ -25,6 +25,10 @@ module.exports = () => {
       await userService._collection.drop();
     });
 
+    it('should successfully get name of the collection', () => {
+      userQueryService.name.should.be.equal(collectionName);
+    });
+
     it('should return paged result if page > 0', async () => {
       // create separate service to stricly check count
       // and do not mix with other tests
@@ -113,6 +117,29 @@ module.exports = () => {
 
       const res = await userQueryService.findById(user._id);
       res.name.should.be.equal('Jean Grey');
+    });
+
+    it('should successfully wait creation of the document', async () => {
+      const wolverine = { name: 'James Howlett' };
+      setTimeout(() => {
+        userService.create(wolverine);
+      }, 100);
+      await userQueryService.expectDocument(wolverine);
+      const expectedDoc = await userQueryService.findOne(wolverine);
+      expectedDoc.name.should.be.equal(wolverine.name);
+    });
+
+    it('should not wait creation of the document', async () => {
+      const deadpool = { name: 'Wade Winston Wilson' };
+      setTimeout(() => {
+        userService.create(deadpool);
+      }, 200);
+
+      try {
+        await userQueryService.expectDocument(deadpool, { timeout: 50, tick: 15 });
+      } catch (error) {
+        error.message.should.have.string('Timeout while waiting for query');
+      }
     });
   });
 };

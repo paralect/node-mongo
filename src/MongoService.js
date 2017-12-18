@@ -161,16 +161,14 @@ class MongoService extends MongoQueryService {
       });
   }
 
-  createOrUpdate(query, updateFn) {
-    return this.exists(query)
-      .then((exists) => {
-        if (exists) {
-          return this.update(query, updateFn);
-        }
-        const doc = query;
-        updateFn(doc);
-        return this.create(doc);
-      });
+  async createOrUpdate(query, updateFn) {
+    const exists = await this.exists(query);
+    if (exists) {
+      return this.update(query, updateFn);
+    }
+    const doc = query;
+    updateFn(doc);
+    return this.create(doc);
   }
 
   findOneAndUpdate(query, update, options = { returnOriginal: false }) {
