@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 [![Build Status](http://product-stack-ci.paralect.com/api/badges/paralect/node-mongo/status.svg)](http://product-stack-ci.paralect.com/paralect/node-mongo)
-[![David Dependancy Status](https://david-dm.org/paralect/stack.svg)](https://david-dm.org/paralect/stack)
+[![David Dependancy Status](https://david-dm.org/paralect/node-mongo.svg)](https://david-dm.org/paralect/node-mongo)
 [![Coverage Status](https://coveralls.io/repos/github/paralect/node-mongo/badge.svg?branch=master)](https://coveralls.io/github/paralect/node-mongo?branch=master)
 
 
