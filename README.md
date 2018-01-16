@@ -12,17 +12,17 @@
 [![Coverage Status](https://coveralls.io/repos/github/paralect/node-mongo/badge.svg?branch=master)](https://coveralls.io/github/paralect/node-mongo?branch=master)
 
 
-[![Watch on GitHub](https://img.shields.io/github/watchers/paralect/stack.svg?style=social&label=Watch)](https://github.com/paralect/node-mongo/watchers)
-[![Star on GitHub](https://img.shields.io/github/stars/paralect/stack.svg?style=social&label=Stars)](https://github.com/paralect/node-mongo/stargazers)
+[![Watch on GitHub](https://img.shields.io/github/watchers/paralect/node-mongo.svg?style=social&label=Watch)](https://github.com/paralect/node-mongo/watchers)
+[![Star on GitHub](https://img.shields.io/github/stars/paralect/node-mongo.svg?style=social&label=Stars)](https://github.com/paralect/node-mongo/stargazers)
 [![Follow](https://img.shields.io/twitter/follow/paralect.svg?style=social&label=Follow)](https://twitter.com/paralect)
 [![Tweet](https://img.shields.io/twitter/url/https/github.com/paralect/stack.svg?style=social)](https://twitter.com/intent/tweet?text=I%27m%20using%20Stack%20components%20to%20build%20my%20next%20product%20🚀.%20Check%20it%20out:%20https://github.com/paralect/stack)
 
-Node Mongo — is reactive extention to MongoDB API. It provides few usability improvements to the [monk](https://github.com/Automattic/monk). 
+Node Mongo — is reactive extention to MongoDB API. It provides few usability improvements to the [monk](https://github.com/Automattic/monk) API. 
 
 ## Features
 
-* ️️🚀 **Reactive** fires events as document stored, updated or deleted from database. That helps to keep your database updates for different entities weakly coupled with each other.
-* 🔥 **Paging** implements high level paging api
+* ️️🚀 **Reactive** fires events as document stored, updated or deleted from database. That helps to keep your database updates for different entities weakly coupled with each other
+* 🔥 **Paging** implements high level paging API
 * ⚡️ **Schema validation** based on [joi](https://github.com/hapijs/joi) 
 
 ## Installation

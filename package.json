@@ -9,7 +9,9 @@
     "test": "run-s test:*",
     "test:eslint": "eslint ./",
     "test:mocha": "NODE_ENV=test mocha --exit --recursive -c -R spec src/index.test.js",
-    "coveralls": "istanbul cover _mocha --report lcovonly -- --exit --recursive -c -R spec src/index.test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "coveralls": "istanbul cover _mocha --report lcovonly -- --exit --recursive -c -R spec src/index.test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "add-contributor": "all-contributors add",
+    "generate-contributors": "all-contributors generate"
   },
   "keywords": [
     "mongo",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@paralect/eslint-config": "0.1.5",
+    "all-contributors-cli": "^4.10.0",
     "babel-eslint": "8.0.3",
     "chai": "4.1.2",
     "coveralls": "3.0.0",
