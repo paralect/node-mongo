@@ -6,9 +6,16 @@ const MongoServiceError = require('./MongoServiceError');
 
 const { logger } = global;
 
+const defaultOptions = {
+  addCreatedOnField: false,
+  addUpdatedOnField: false,
+};
+
 class MongoService extends MongoQueryService {
   constructor(collection, options = {}, eventBus = new EventEmitter()) {
     super(collection, options);
+
+    _.defaults(this._options, defaultOptions);
 
     this._bus = eventBus;
     this.logger = logger;
@@ -79,7 +86,10 @@ class MongoService extends MongoQueryService {
       if (!entity._id) {
         entity._id = idGenerator.generate();
       }
-      entity.createdOn = new Date();
+
+      if (this._options.addCreatedOnField) {
+        entity.createdOn = new Date();
+      }
 
       this._validateSchema(entity);
     });
@@ -116,7 +126,11 @@ class MongoService extends MongoQueryService {
       );
     }
     const prevDoc = _.cloneDeep(doc);
-    doc.updatedOn = new Date();
+
+    if (this._options.addUpdatedOnField) {
+      doc.updatedOn = new Date();
+    }
+
     updateFn(doc);
     this._validateSchema(doc);
 

@@ -41,6 +41,14 @@ module.exports = () => {
       res.count.should.be.equal(3);
     });
 
+    it('should return 0 results', async () => {
+      const res = await userQueryService.find(
+        { _id: 'nonexistent id' },
+        { page: 1 },
+      );
+      res.pagesCount.should.be.equal(1);
+    });
+
     it('should return one user', async () => {
       await userService.create([{ name: 'Evgeny' }]);
 
@@ -136,7 +144,25 @@ module.exports = () => {
       }, 200);
 
       try {
-        await userQueryService.expectDocument(deadpool, { timeout: 50, tick: 15 });
+        await userQueryService.expectDocument(deadpool, {
+          timeout: 50,
+          tick: 15,
+          expectNoDocs: true,
+        });
+      } catch (error) {
+        error.message.should.have.string('Timeout while waiting for query');
+      }
+    });
+
+    it('should wait deletion of the document', async () => {
+      const domino = { name: 'Neena Thurman' };
+      userService.create(domino);
+      setTimeout(() => {
+        userService.remove(domino);
+      }, 200);
+
+      try {
+        await userQueryService.expectDocument(domino, { timeout: 50, tick: 15 });
       } catch (error) {
         error.message.should.have.string('Timeout while waiting for query');
       }

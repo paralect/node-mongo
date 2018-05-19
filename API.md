@@ -62,7 +62,9 @@ Create and return new [MongoDB service](#mongo-service)
   3) Write conditional validations for fields when some conditions are met for other fields
   4) Do some transformations of the values (for example for string fields you can do `trim`)
 
-- `options` - *(Object)* optional object with options of the service (currently, specified options are not used in the service)
+- `options` - *(Object)* optional object with options of the service.
+  - `addCreatedOnField` - *(Boolean)* if `true` then we add field `createdOn` when we call method [create](#createobjects), default value is `false`
+  - `addUpdatedOnField` - *(Boolean)* if `true` then we add field `updatedOn` when we call method [update](#updatequery-updatefn), default value is `false`
 
 #### Returns:
 New [MongoDB service](#mongo-service) object.
