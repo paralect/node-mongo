@@ -52,11 +52,21 @@ module.exports = () => {
     const userService = db.createService(`users-${Date.now()}`);
     const findUserService = db.createService(`users-${Date.now() + 1}`);
 
+    const userServiceWithDate = db.createService(
+      `users-${Date.now() + 2}`,
+      null,
+      {
+        addCreatedOnField: true,
+        addUpdatedOnField: true,
+      },
+    );
+
     after(async () => {
       await Promise.all([
         userServiceJoiSchema._collection.drop(),
         userService._collection.drop(),
         findUserService._collection.drop(),
+        userServiceWithDate._collection.drop(),
       ]);
     });
 
@@ -281,6 +291,29 @@ module.exports = () => {
       userService.update({ name }, (doc) => {
         Object.assign(doc, { name: pseudonym });
       });
+    });
+
+    it('should add field createdOn to the document', async () => {
+      const laura = await userServiceWithDate.create({
+        name: 'Laura',
+        pseudonym: 'x23',
+      });
+      laura.createdOn.should.be.an.instanceof(Date);
+    });
+
+    it('should add field updatedOn to the document', async () => {
+      const beast = await userServiceWithDate.create({
+        name: 'Henry Philip Hank McCoy',
+        pseudonym: 'Henry',
+      });
+      await userServiceWithDate.update({ _id: beast._id }, (d) => {
+        const document = d;
+        document.pseudonym = 'Beast';
+      });
+      const updatedBeast = await userServiceWithDate.findOne({
+        _id: beast._id,
+      });
+      updatedBeast.updatedOn.should.be.an.instanceof(Date);
     });
   });
 };
