@@ -39,7 +39,7 @@ const connectionString = `mongodb://localhost:27017/home-db`;
 const db = require('node-mongo').connect(connectionString);
 ```
 
-Short API overview, for more details see [Full API reference](API.md)
+Short API overview, for more details see [Full API reference](https://github.com/paralect/node-mongo/blob/master/API.md)
 ```javascript
 //create a service to work with specific database collection
 const usersService = db.createService('users');
@@ -90,7 +90,7 @@ const usersService = db.createService('users', schema);
 
 ## Full API Reference
 
-[API Reference](API.md).
+[API Reference](https://github.com/paralect/node-mongo/blob/master/API.md).
 
 ## Change Log
 
@@ -99,11 +99,11 @@ Every release is documented on the Github [Releases](https://github.com/paralect
 
 ## License
 
-Node-mongo is released under the [MIT License](LICENSE).
+Node-mongo is released under the [MIT License](https://github.com/paralect/node-mongo/blob/master/LICENSE).
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://github.com/paralect/node-mongo/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Contributors
 
