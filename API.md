@@ -395,7 +395,7 @@ Removed documents.
 #### Example:
 ```javascript
 const usersService = db.createService('users');
-const removeUsers = await usersService.update({ name: 'Alex' });
+const removeUsers = await usersService.remove({ name: 'Alex' });
 ```
 
 ### `ensureIndex(index, options)`
