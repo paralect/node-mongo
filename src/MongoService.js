@@ -134,7 +134,7 @@ class MongoService extends MongoQueryService {
     updateFn(doc);
     this._validateSchema(doc);
 
-    await this._collection.update({ _id: doc._id }, doc);
+    await this._collection.update({ _id: doc._id }, { $set: { ...doc } });
 
     this._bus.emit('updated', {
       doc,
