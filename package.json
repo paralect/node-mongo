@@ -20,8 +20,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "lodash": "4.17.10",
-    "monk": "6.0.6"
+    "lodash": "4.17.11",
+    "monk": "7.0.0"
   },
   "devDependencies": {
     "@paralect/eslint-config": "0.1.5",
