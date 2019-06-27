@@ -1,3 +1,12 @@
+## v1.1.0 (2019-06-25)
+
+* Update dependencies.
+* Fix required version of the Node.js.
+
+### Breaking Changes
+
+* Now `update` function will work via [set](https://docs.mongodb.com/manual/reference/operator/update/set/) operator. It means the new doc will be the result of merge of the old doc and the provided one.
+
 ## v1.0.0 (2018-05-23)
 
 * Update dependencies.
