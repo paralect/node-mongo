@@ -1,8 +1,9 @@
+const monk = require('monk');
+
 const MongoService = require('./MongoService');
 const MongoQueryService = require('./MongoQueryService');
-
-const monk = require('monk');
 const idGenerator = require('./idGenerator');
+
 
 const logger = global.logger || console;
 
@@ -44,14 +45,15 @@ const connect = (connectionString) => {
   });
 
   // Add factory methods to the database object
-  db.createService = (collectionName, validateSchema, options = {}) => {
+  db.createService = (collectionName, jsonSchema = {}, options = {}) => {
     const opt = options;
-    if (validateSchema) {
-      opt.validateSchema = validateSchema;
+    if (jsonSchema) {
+      opt.jsonSchema = jsonSchema;
     }
 
     const collection = db.get(collectionName, { castIds: false });
-    return new MongoService(collection, opt);
+
+    return new MongoService(collection, opt, db);
   };
 
   /**
