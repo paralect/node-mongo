@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const { EventEmitter } = require('events');
 
 const MongoQueryService = require('./MongoQueryService');
 const idGenerator = require('./idGenerator');
@@ -15,66 +14,30 @@ const defaultOptions = {
 };
 
 class MongoService extends MongoQueryService {
-  constructor(collection, options = {}, db, eventBus = new EventEmitter()) {
+  constructor(collection, options = {}) {
     super(collection, options);
 
     _.defaults(this._options, defaultOptions);
 
-    this._bus = eventBus;
     this.logger = logger;
 
-    const setSchemaAndWatch = (_db, startAfter) => {
-      _db.createCollection(collection.name, {
-        validator: this._options.jsonSchema,
-      }, () => {
-        _db.command({
-          collMod: collection.name,
-          validator: this._options.jsonSchema,
-        });
-      });
+    collection.manager.executeWhenOpened()
+      .then(async () => {
+        const collectionNames = (await collection.manager._db.listCollections().toArray())
+          .map(({ name }) => name);
+        const isCollectionExists = collectionNames.includes(collection.name);
 
-      const changeStream = _db.collection(collection.name).watch({
-        fullDocument: 'updateLookup',
-        startAfter,
-      });
-
-      changeStream.on('change', async (event) => {
-        switch (event.operationType) {
-          case 'insert':
-            return this._bus.emit('created', event);
-          case 'delete':
-            return this._bus.emit('removed', event);
-          case 'replace':
-            return this._bus.emit('replaced', event);
-          case 'update':
-            return this._bus.emit('updated', event);
-          case 'invalidate': {
-            setSchemaAndWatch(_db, event._id);
-            return this._bus.emit('error', event);
-          }
-          default: // drop, rename, dropDatabase
-            return this._bus.emit('changed', event);
+        if (isCollectionExists) {
+          collection.manager._db.command({
+            collMod: collection.name,
+            validator: this._options.jsonSchema,
+          });
+        } else {
+          collection.manager._db.createCollection(collection.name, {
+            validator: this._options.jsonSchema,
+          });
         }
       });
-    };
-
-    // collection doesn't contain _db immediately
-    db.on('open', _db => setSchemaAndWatch(_db));
-  }
-
-  /**
-  * Subscribe to database change events only once. The first time evenName
-  * is triggered listener handler is removed and then invoked
-  */
-  once(eventName, handler) {
-    return this._bus.once(eventName, handler);
-  }
-
-  /**
-  * Subscribe to database change events.
-  */
-  on(eventName, handler) {
-    return this._bus.on(eventName, handler);
   }
 
   static _getUpdateQuery(query = {}) {
@@ -216,25 +179,6 @@ class MongoService extends MongoQueryService {
       .catch((err) => {
         this.logger.warn(err);
       });
-  }
-
-  /**
-   * Check updateDescription from 'updated' event. When
-   * something changed - executes callback
-   *
-   * @param {Array} properties - see deepCompare
-   * @param {Function} callback - executes callback if something changed
-   */
-  onPropertiesUpdated(properties, callback) {
-    return this.on('updated', (event) => {
-      const updatedProperties = event.updateDescription
-        ? event.updateDescription.updatedFields : {};
-      const isChanged = Object.keys(updatedProperties).find(prop => properties.includes(prop));
-
-      if (isChanged) {
-        callback(event);
-      }
-    });
   }
 }
 
