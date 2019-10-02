@@ -25,9 +25,9 @@ class MongoService extends MongoQueryService {
       .then(async () => {
         const collectionNames = (await collection.manager._db.listCollections().toArray())
           .map(({ name }) => name);
-        const isCollectionExists = collectionNames.includes(collection.name);
+        const isCollectionExist = collectionNames.includes(collection.name);
 
-        if (isCollectionExists) {
+        if (isCollectionExist) {
           collection.manager._db.command({
             collMod: collection.name,
             validator: this._options.jsonSchema,
@@ -40,7 +40,7 @@ class MongoService extends MongoQueryService {
       });
   }
 
-  static _getUpdateQuery(query = {}) {
+  _getUpdateQuery(query = {}) {
     let updateQuery = _.cloneDeep(query);
 
     if (this._options.useStringId && !(query.$set || {})._id) {
@@ -149,12 +149,12 @@ class MongoService extends MongoQueryService {
   }
 
   update(query, update, options = {}) {
-    const updateQuery = MongoService._getUpdateQuery(update);
+    const updateQuery = this._getUpdateQuery(update);
     return this._collection.update(query, updateQuery, options);
   }
 
   findOneAndUpdate(query, update, options = {}) {
-    const updateQuery = MongoService._getUpdateQuery(update);
+    const updateQuery = this._getUpdateQuery(update);
     return this._collection.findOneAndUpdate(query, updateQuery, options);
   }
 
