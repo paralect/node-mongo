@@ -1,81 +1,81 @@
 const _ = require('lodash');
-const { EventEmitter } = require('events');
+
 const MongoQueryService = require('./MongoQueryService');
 const idGenerator = require('./idGenerator');
 const MongoServiceError = require('./MongoServiceError');
 
+
 const { logger } = global;
 
 const defaultOptions = {
-  addCreatedOnField: false,
-  addUpdatedOnField: false,
+  addCreatedOnField: true,
+  addUpdatedOnField: true,
+  useStringId: true,
 };
 
 class MongoService extends MongoQueryService {
-  constructor(collection, options = {}, eventBus = new EventEmitter()) {
+  constructor(collection, options = {}) {
     super(collection, options);
 
     _.defaults(this._options, defaultOptions);
 
-    this._bus = eventBus;
     this.logger = logger;
-    this.atomic = {
-      update: (query, updateObject, updateOptions = {}) => {
-        return collection.update(query, updateObject, updateOptions);
-      },
-      findOneAndUpdate: (query, update, updateOptions) => {
-        return collection.findOneAndUpdate(query, update, updateOptions);
-      },
-    };
+
+    collection.manager.executeWhenOpened()
+      .then(async () => {
+        const collectionNames = (await collection.manager._db.listCollections().toArray())
+          .map(({ name }) => name);
+        const isCollectionExist = collectionNames.includes(collection.name);
+
+        if (isCollectionExist) {
+          collection.manager._db.command({
+            collMod: collection.name,
+            validator: this._options.jsonSchema,
+          });
+        } else {
+          collection.manager._db.createCollection(collection.name, {
+            validator: this._options.jsonSchema,
+          });
+        }
+      });
   }
 
-  _validateSchema(entity) {
-    if (this._options.validateSchema) {
-      const validationResult = this._options.validateSchema(entity);
+  _getUpdateQuery(query = {}) {
+    let updateQuery = _.cloneDeep(query);
 
-      const errors = validationResult.errors || validationResult.error;
-      const isJoi = errors ? errors.isJoi : false;
-
-      if (errors && (isJoi || errors.length > 0)) {
-        const errorsObj = {
-          isJoi,
-          details: isJoi ? errors.details : errors,
-        };
-        logger.error('Schema invalid', JSON.stringify(errorsObj.details, 0, 4));
-
-        throw new MongoServiceError(
-          MongoServiceError.INVALID_SCHEMA,
-          `Document schema is invalid: ${JSON.stringify(errorsObj.details)}`,
-          errorsObj,
-        );
-      }
+    if (this._options.useStringId && !(query.$set || {})._id) {
+      updateQuery = {
+        ...updateQuery,
+        $setOnInsert: { _id: idGenerator.generate(), ...(updateQuery.$setOnInsert || {}) },
+      };
     }
-  }
 
-  /**
-  * Subscribe to database change events only once. The first time evenName
-  * is triggered listener handler is removed and then invoked
-  */
-  once(eventName, handler) {
-    return this._bus.once(eventName, handler);
-  }
+    if (this._options.addCreatedOnField && !(query.$set || {}).createdOn) {
+      updateQuery = {
+        ...updateQuery,
+        $setOnInsert: { createdOn: new Date(), ...(updateQuery.$setOnInsert || {}) },
+      };
+    }
 
-  /**
-  * Subscribe to database change events.
-  */
-  on(eventName, handler) {
-    return this._bus.on(eventName, handler);
+    if (this._options.addUpdatedOnField && !(query.$set || {}).updatedOn) {
+      updateQuery = {
+        ...updateQuery,
+        $setOnInsert: { updatedOn: new Date(), ...(updateQuery.$setOnInsert || {}) },
+      };
+    }
+
+    return updateQuery;
   }
 
   /**
   * Insert one object or array of the objects to the database
-  * Publishes `created` event {doc}
   * Sets createdOn to the current date
   *
   * @param {array | object} Object or array of objects to create
+  * @param {object} Object of options
   * @return {array | object} Object or array of created objects
   */
-  async create(objs) {
+  async create(objs, options = {}) {
     let entities = objs;
     if (!_.isArray(entities)) {
       entities = [entities];
@@ -83,83 +83,89 @@ class MongoService extends MongoQueryService {
 
     entities.forEach((item) => {
       const entity = item;
-      if (!entity._id) {
+      if (this._options.useStringId && !entity._id) {
         entity._id = idGenerator.generate();
       }
 
-      if (this._options.addCreatedOnField) {
+      if (this._options.addCreatedOnField && !entity.createdOn) {
         entity.createdOn = new Date();
       }
-
-      this._validateSchema(entity);
     });
 
-    await this._collection.insert(entities);
-    entities.forEach((doc) => {
-      this._bus.emit('created', {
-        doc,
-      });
-    });
+    await this._collection.insert(entities, options);
 
     return entities.length > 1 ? entities : entities[0];
   }
 
   /**
   * Modifies entity found by query in the database
-  * Publishes `updated` event {doc, prevDoc}
   * Sets updatedOn to the current date
   *
   * @param query {Object} - mongo search query
   * @param updateFn {function(doc)} - function, that recieves document to be updated
   * @return {Object} Updated object
   */
-  async update(query, updateFn) {
+  async updateWithFunction(query, updateFn) {
     if (!_.isFunction(updateFn)) {
       throw new Error('updateFn must be a function');
     }
 
-    const doc = await this.findOne(query);
-    if (!doc) {
-      throw new MongoServiceError(
-        MongoServiceError.NOT_FOUND,
-        `Document not found while updating. Query: ${JSON.stringify(query)}`,
-      );
-    }
-    const prevDoc = _.cloneDeep(doc);
+    await this._collection.manager.executeWhenOpened();
 
-    if (this._options.addUpdatedOnField) {
-      doc.updatedOn = new Date();
-    }
+    const session = this._collection.manager._client.startSession({});
 
-    updateFn(doc);
-    this._validateSchema(doc);
+    let doc;
+    await session.withTransaction(async () => {
+      doc = await this.findOne(query, { session });
+      if (!doc) {
+        throw new MongoServiceError(
+          MongoServiceError.NOT_FOUND,
+          `Document not found while updating. Query: ${JSON.stringify(query)}`,
+        );
+      }
 
-    await this._collection.update({ _id: doc._id }, { $set: { ...doc } });
+      updateFn(doc);
 
-    this._bus.emit('updated', {
-      doc,
-      prevDoc,
+      if (this._options.addUpdatedOnField && !doc.updatedOn) {
+        doc.updatedOn = new Date();
+      }
+
+      await this._collection.update({ _id: doc._id }, { $set: { ...doc } }, { session });
     });
 
     return doc;
+  }
+
+  async performTransaction(transactionFn, options = {}) {
+    if (!_.isFunction(transactionFn)) {
+      throw new Error('transactionFn must be a function');
+    }
+
+    await this._collection.manager.executeWhenOpened();
+
+    const session = this._collection.manager._client.startSession(options);
+
+    return session.withTransaction(() => transactionFn(session));
+  }
+
+  update(query, update, options = {}) {
+    const updateQuery = this._getUpdateQuery(update);
+    return this._collection.update(query, updateQuery, options);
+  }
+
+  findOneAndUpdate(query, update, options = {}) {
+    const updateQuery = this._getUpdateQuery(update);
+    return this._collection.findOneAndUpdate(query, updateQuery, options);
   }
 
   /**
   * Remove one or many documents found by query
   *
   * @param query {Object} - mongodb search query
+  * @param options {Object} - mongodb search query
   */
-  async remove(query) {
-    const docsForRemove = await this.find(query);
-    await this._collection.remove(query);
-
-    docsForRemove.results.forEach((doc) => {
-      this._bus.emit('removed', {
-        doc,
-      });
-    });
-
-    return docsForRemove;
+  remove(query, options = {}) {
+    return this._collection.remove(query, options);
   }
 
   /**
@@ -168,102 +174,11 @@ class MongoService extends MongoQueryService {
   * @param index {Object} - index to be created
   * @param options {Object} - index options
   */
-  ensureIndex(index, options) {
+  createIndex(index, options = {}) {
     return this._collection.createIndex(index, options)
       .catch((err) => {
         this.logger.warn(err);
       });
-  }
-
-  async createOrUpdate(query, updateFn) {
-    const exists = await this.exists(query);
-    if (exists) {
-      return this.update(query, updateFn);
-    }
-    const doc = query;
-    updateFn(doc);
-    return this.create(doc);
-  }
-
-  findOneAndUpdate(query, update, options = { returnOriginal: false }) {
-    let originalDoc;
-    return this.findOne(query)
-      .then((doc) => {
-        originalDoc = doc;
-
-        return this._collection.findOneAndUpdate(query, update, options);
-      })
-      .then((doc) => {
-        if (originalDoc) {
-          this._bus.emit('updated', {
-            doc,
-            prevDoc: originalDoc,
-          });
-        } else {
-          this._bus.emit('created', {
-            doc,
-          });
-        }
-
-        return doc;
-      });
-  }
-
-  /**
-   * Deep compare doc & prevDoc from 'updated' event. When
-   * something changed - executes callback
-   *
-   * @param  {Array|Object} properties - see deepCompare
-   * @param  {Function} callback - executes callback if something changed
-   */
-  onPropertiesUpdated(properties, callback) {
-    return this.on('updated', (evt) => {
-      const data = evt.doc;
-      const initialData = evt.prevDoc;
-      const isChanged = MongoService.deepCompare(data, initialData, properties);
-      if (isChanged) {
-        callback(evt);
-      }
-    });
-  }
-
-  /**
-   * Deep compare data & initialData. When
-   * something changed - executes callback
-   *
-   * @param  {Array|Object} properties
-   * 1) Array of properties to compare. For example: ['user.firstName', 'companyId']
-   * 2) Object of properties {'user.firstName': 'John'} - will check if property changed and equal
-   * to 'John' in updated document.
-   * Note: . (dot) is used to compare deeply nested properties
-   * @return {Boolean} - indicates if something has changed
-   */
-  static deepCompare(data, initialData, properties) {
-    let changed = false;
-
-    if (Array.isArray(properties)) {
-      changed = _.find(properties, (prop) => {
-        const value = _.get(data, prop);
-        const initialValue = _.get(initialData, prop);
-
-        return !_.isEqual(value, initialValue);
-      }) !== undefined;
-    } else {
-      Object.keys(properties).forEach((prop) => {
-        if (changed) {
-          return;
-        }
-        const value = _.get(data, prop);
-        const initialValue = _.get(initialData, prop);
-
-        if ((value === properties[prop])
-          && (initialValue !== properties[prop])) {
-          changed = true;
-        }
-      });
-    }
-
-    return changed;
   }
 }
 

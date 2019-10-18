@@ -78,10 +78,11 @@ class MongoQueryService {
   * Count documents by query
   *
   * @param query {Object} - search query
+  * @param options {Object} - options
   * @return {Number} - number of documents matched by query
   */
-  count(query) {
-    return this._collection.count(query);
+  count(query, options = {}) {
+    return this._collection.count(query, options);
   }
 
   /**
@@ -89,9 +90,10 @@ class MongoQueryService {
   *
   * @param field {String} - field name
   * @param query {Object} - search query
+  * @param options {Object} - options
   * @return {Array} - distinct values of given field
   */
-  distinct(field, query, options) {
+  distinct(field, query, options = {}) {
     return this._collection.distinct(field, query, options);
   }
 
@@ -99,10 +101,11 @@ class MongoQueryService {
   * Checks if document exists by specified query
   *
   * @param query {string} - search query
+  * @param options {Object} - options
   * @return {Boolean}
   */
-  async exists(query) {
-    const count = await this.count(query);
+  async exists(query, options = {}) {
+    const count = await this.count(query, options);
     return count > 0;
   }
 
@@ -111,10 +114,11 @@ class MongoQueryService {
   * More documentation: https://docs.mongodb.com/manual/meta/aggregation-quick-reference
   *
   * @param pipeline {Array} - aggregation pipeline
+  * @param options {Object} - options
   * @return {Object} - aggregation result
   */
-  aggregate(pipeline) {
-    return this._collection.aggregate(pipeline);
+  aggregate(pipeline, options = {}) {
+    return this._collection.aggregate(pipeline, options);
   }
 
   /**
