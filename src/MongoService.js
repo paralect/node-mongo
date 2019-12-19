@@ -124,7 +124,7 @@ class MongoService extends MongoQueryService {
         );
       }
 
-      updateFn(doc);
+      await updateFn(doc);
 
       if (this._options.addUpdatedOnField) {
         doc.updatedOn = new Date();
