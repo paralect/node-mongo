@@ -57,10 +57,10 @@ class MongoService extends MongoQueryService {
       };
     }
 
-    if (this._options.addUpdatedOnField && !(query.$set || {}).updatedOn) {
+    if (this._options.addUpdatedOnField) {
       updateQuery = {
         ...updateQuery,
-        $setOnInsert: { updatedOn: new Date(), ...(updateQuery.$setOnInsert || {}) },
+        $set: { updatedOn: new Date(), ...(updateQuery.$set || {}) },
       };
     }
 
@@ -124,9 +124,9 @@ class MongoService extends MongoQueryService {
         );
       }
 
-      updateFn(doc);
+      await updateFn(doc);
 
-      if (this._options.addUpdatedOnField && !doc.updatedOn) {
+      if (this._options.addUpdatedOnField) {
         doc.updatedOn = new Date();
       }
 
