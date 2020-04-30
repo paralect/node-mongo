@@ -21,23 +21,30 @@ class MongoService extends MongoQueryService {
 
     this.logger = logger;
 
-    collection.manager.executeWhenOpened()
-      .then(async () => {
-        const collectionNames = (await collection.manager._db.listCollections().toArray())
-          .map(({ name }) => name);
-        const isCollectionExist = collectionNames.includes(collection.name);
-
-        if (isCollectionExist) {
-          collection.manager._db.command({
-            collMod: collection.name,
-            validator: this._options.jsonSchema,
-          });
-        } else {
-          collection.manager._db.createCollection(collection.name, {
-            validator: this._options.jsonSchema,
-          });
-        }
-      });
+    if (this._options.jsonSchema) {
+      collection.manager.executeWhenOpened()
+        .then(async () => {
+          try {
+            await collection.manager._db.command({
+              create: collection.name,
+              validator: this._options.jsonSchema,
+            });
+          } catch (err) {
+            // a collection already exists
+            if (err.code === 48) {
+              await collection.manager._db.command({
+                collMod: collection.name,
+                validator: this._options.jsonSchema,
+              });
+            } else {
+              throw err;
+            }
+          }
+        })
+        .catch((err) => {
+          this.logger.error(err, `Failed to set JSON schema for '${collection.name}' collection`);
+        });
+    }
   }
 
   _getUpdateQuery(query = {}) {

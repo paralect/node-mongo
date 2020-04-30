@@ -46,7 +46,7 @@ const connect = (connectionString) => {
   });
 
   // Add factory methods to the database object
-  db.createService = (collectionName, jsonSchema = {}, options = {}) => {
+  db.createService = (collectionName, jsonSchema, options = {}) => {
     const opt = options;
     if (jsonSchema) {
       opt.jsonSchema = jsonSchema;
