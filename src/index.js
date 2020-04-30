@@ -1,5 +1,6 @@
 const monk = require('monk');
 const { EventEmitter } = require('events');
+const _ = require('lodash');
 
 const MongoService = require('./MongoService');
 const MongoQueryService = require('./MongoQueryService');
@@ -14,11 +15,9 @@ const logger = global.logger || console;
 * @return {Object} with a factory method {createService}, that creates a
 * mongodb service
 */
-const connect = (connectionString) => {
-  // options docs: http://mongodb.github.io/node-mongodb-native/2.1/reference/connecting/connection-settings/
-  const db = monk(connectionString, {
-    connectTimeoutMS: 20000,
-  });
+const connect = (connectionString, settings) => {
+  const connectionSettings = _.defaults({}, settings, { connectTimeoutMS: 20000 });
+  const db = monk(connectionString, connectionSettings);
 
   db.on('error-opening', (err) => {
     logger.error(err, 'Failed to connect to the mongodb on start');

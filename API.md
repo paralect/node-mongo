@@ -1,7 +1,7 @@
 # 1.0.0 API Reference
 
 - [Node Mongo](#nodemongo)
-  - [`connect(connectionString)`](#connect-connectionstring)
+  - [`connect(connectionString, [connectionSettings])`](#connectconnectionstring-connectionsettings)
   - [`createService(collectionName, [validateSchema, [options]])`](#createservicecollectionname-validateschema-options)
   - [`setServiceMethod(name, method)`](#setservicemethodname-method)
   - [`createQueryService(collectionName, [options])`](#createqueryservicecollectionname-options)
@@ -31,12 +31,13 @@
 
 ## Node Mongo
 
-### `connect(connectionString)`
+### `connect(connectionString, [connectionSettings])`
 
 Connect to the database MongoDB.
 
 #### Arguments:
 - `connectionString` - *(String)* string to connect to database, contains host, port and user credentials if it's needed and other parameters ([MongoDB documentation](https://docs.mongodb.com/manual/reference/connection-string/)).
+- `connectionSettings` - *(Object)* an object containing node-mongodb-native connection settings ([Reference](http://mongodb.github.io/node-mongodb-native/2.1/reference/connecting/connection-settings/)).
 
 #### Returns:
 New database object.
@@ -44,7 +45,8 @@ New database object.
 #### Example:
 ```javascript
 const connectionString = `mongodb://localhost:27017/home-db`;
-const db = require('node-mongo').connect(connectionString);
+const connectionSettings = { poolSize: 10 };
+const db = require('node-mongo').connect(connectionString, connectionSettings);
 ```
 
 ### `createService(collectionName, [validateSchema, [options]])`
