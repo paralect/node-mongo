@@ -1,3 +1,4 @@
+const { EventEmitter } = require('events');
 const _ = require('lodash');
 
 const MongoQueryService = require('./MongoQueryService');
@@ -11,67 +12,128 @@ const defaultOptions = {
   addCreatedOnField: true,
   addUpdatedOnField: true,
   useStringId: true,
+  validateSchema: undefined,
 };
 
 class MongoService extends MongoQueryService {
-  constructor(collection, options = {}) {
+  constructor(collection, options = {}, eventBus = new EventEmitter()) {
     super(collection, options);
 
     _.defaults(this._options, defaultOptions);
 
     this.logger = logger;
+    this._bus = eventBus;
+    this.atomic = {
+      insert: (query, insertOptions = {}) => {
+        return collection.insert(query, insertOptions);
+      },
+      update: (query, updateQuery, updateOptions = {}) => {
+        return collection.update(query, updateQuery, updateOptions);
+      },
+      findOneAndUpdate: (query, updateQuery, updateOptions = {}) => {
+        return collection.findOneAndUpdate(query, updateQuery, updateOptions);
+      },
+      remove: (query, removeOptions = {}) => {
+        return collection.remove(query, removeOptions);
+      },
+    };
 
-    if (this._options.jsonSchema) {
-      collection.manager.executeWhenOpened()
-        .then(async () => {
-          try {
-            await collection.manager._db.command({
-              create: collection.name,
-              validator: this._options.jsonSchema,
-            });
-          } catch (err) {
-            // a collection already exists
-            if (err.code === 48) {
-              await collection.manager._db.command({
-                collMod: collection.name,
-                validator: this._options.jsonSchema,
-              });
-            } else {
-              throw err;
-            }
-          }
-        })
-        .catch((err) => {
-          this.logger.error(err, `Failed to set JSON schema for '${collection.name}' collection`);
-        });
+    collection.manager.executeWhenOpened()
+      .then(async () => {
+        await collection.manager._db.command({ create: collection.name });
+      })
+      .catch((error) => {
+        // a collection already exists
+        if (error.code !== 48) {
+          throw error;
+        }
+      });
+  }
+
+  /**
+   * Deep compare data & initialData. When
+   * something changed - executes callback
+   *
+   * @param  {Array|Object} properties
+   * 1) Array of properties to compare. For example: ['user.firstName', 'companyId']
+   * 2) Object of properties {'user.firstName': 'John'} - will check if property changed and equal
+   * to 'John' in updated document.
+   * Note: . (dot) is used to compare deeply nested properties
+   * @return {Boolean} - indicates if something has changed
+   */
+  static _deepCompare(data, initialData, properties) {
+    let changed = false;
+
+    if (Array.isArray(properties)) {
+      changed = _.find(properties, (prop) => {
+        const value = _.get(data, prop);
+        const initialValue = _.get(initialData, prop);
+
+        return !_.isEqual(value, initialValue);
+      }) !== undefined;
+    } else {
+      Object.keys(properties).forEach((prop) => {
+        if (changed) return;
+
+        const value = _.get(data, prop);
+        const initialValue = _.get(initialData, prop);
+
+        if (_.isEqual(value, properties[prop]) && !_.isEqual(initialValue, properties[prop])) {
+          changed = true;
+        }
+      });
+    }
+
+    return changed;
+  }
+
+  _validateSchema(entity) {
+    if (this._options.validateSchema) {
+      const { errors } = this._options.validateSchema(entity);
+
+      if (errors) {
+        logger.error('Schema invalid', JSON.stringify(errors.details, 0, 4));
+
+        throw new MongoServiceError(
+          MongoServiceError.INVALID_SCHEMA,
+          `Document schema is invalid: ${JSON.stringify(errors.details)}`,
+          errors,
+        );
+      }
     }
   }
 
-  _getUpdateQuery(query = {}) {
-    let updateQuery = _.cloneDeep(query);
+  emit(eventName, event) {
+    return this._bus.emit(eventName, event);
+  }
 
-    if (this._options.useStringId && !(query.$set || {})._id) {
-      updateQuery = {
-        ...updateQuery,
-        $setOnInsert: { _id: idGenerator.generate(), ...(updateQuery.$setOnInsert || {}) },
-      };
-    }
+  /**
+  * Subscribe to database change events only once. The first time evenName
+  * is triggered listener handler is removed and then invoked
+  */
+  once(eventName, handler) {
+    return this._bus.once(eventName, handler);
+  }
 
-    if (this._options.addCreatedOnField && !(query.$set || {}).createdOn) {
-      updateQuery = {
-        ...updateQuery,
-        $setOnInsert: { createdOn: new Date(), ...(updateQuery.$setOnInsert || {}) },
-      };
-    }
+  /**
+  * Subscribe to database change events.
+  */
+  on(eventName, handler) {
+    return this._bus.on(eventName, handler);
+  }
 
-    if (this._options.addUpdatedOnField) {
-      updateQuery = {
-        ...updateQuery,
-        $set: { updatedOn: new Date(), ...(updateQuery.$set || {}) },
-      };
-    }
-
-    return updateQuery;
+  /**
+   * Deep compare doc & prevDoc from 'updated' event. When
+   * something changed - executes handler
+   *
+   * @param  {Array|Object} properties - see deepCompare
+   * @param  {Function} handler - executes handler if something changed
+   */
+  onPropertiesUpdated(properties, handler) {
+    return this.on('updated', (event) => {
+      const isChanged = MongoService._deepCompare(event.doc, event.prevDoc, properties);
+      if (isChanged) handler(event);
+    });
   }
 
   /**
@@ -83,23 +145,25 @@ class MongoService extends MongoQueryService {
   * @return {array | object} Object or array of created objects
   */
   async create(objs, options = {}) {
-    let entities = objs;
-    if (!_.isArray(entities)) {
-      entities = [entities];
-    }
+    const entities = _.isArray(objs) ? objs : [objs];
 
-    entities.forEach((item) => {
-      const entity = item;
-      if (this._options.useStringId && !entity._id) {
-        entity._id = idGenerator.generate();
-      }
+    const created = await Promise.all(entities.map(async (doc) => {
+      const entity = _.cloneDeep(doc);
 
-      if (this._options.addCreatedOnField && !entity.createdOn) {
-        entity.createdOn = new Date();
-      }
+      if (this._options.useStringId && !entity._id) entity._id = idGenerator.generate();
+      if (this._options.addCreatedOnField && !entity.createdOn) entity.createdOn = new Date();
+      await this._validateSchema(entity);
+
+      return entity;
+    }));
+
+    await this._collection.insert(created, options);
+
+    created.forEach((doc) => {
+      this._bus.emit('created', {
+        doc,
+      });
     });
-
-    await this._collection.insert(entities, options);
 
     return entities.length > 1 ? entities : entities[0];
   }
@@ -112,35 +176,64 @@ class MongoService extends MongoQueryService {
   * @param updateFn {function(doc)} - function, that recieves document to be updated
   * @return {Object} Updated object
   */
-  async updateWithFunction(query, updateFn) {
+  async update(query, updateFn, options = {}) {
     if (!_.isFunction(updateFn)) {
       throw new Error('updateFn must be a function');
     }
 
-    await this._collection.manager.executeWhenOpened();
+    const findOptions = {};
+    if (options.session) findOptions.session = options.session;
+    const { results: docs } = await this.find(query, findOptions);
+    if (!docs.length) {
+      throw new MongoServiceError(
+        MongoServiceError.NOT_FOUND,
+        `Documents not found while updating. Query: ${JSON.stringify(query)}`,
+      );
+    }
 
-    const session = this._collection.manager._client.startSession({});
+    const updated = await Promise.all(docs.map(async (doc, index) => {
+      let entity = _.cloneDeep(doc);
 
-    let doc;
-    await session.withTransaction(async () => {
-      doc = await this.findOne(query, { session });
-      if (!doc) {
-        throw new MongoServiceError(
-          MongoServiceError.NOT_FOUND,
-          `Document not found while updating. Query: ${JSON.stringify(query)}`,
-        );
-      }
+      if (this._options.addUpdatedOnField) entity.updatedOn = new Date();
+      entity = await updateFn(entity, index, docs);
+      await this._validateSchema(entity);
 
-      await updateFn(doc);
+      return entity;
+    }));
 
-      if (this._options.addUpdatedOnField) {
-        doc.updatedOn = new Date();
-      }
+    await Promise.all(updated.map((doc) => {
+      return this._collection.update({ ...query, _id: doc._id }, { $set: doc }, options);
+    }));
 
-      await this._collection.update({ _id: doc._id }, { $set: { ...doc } }, { session });
+    updated.forEach((doc, index) => {
+      this._bus.emit('updated', {
+        doc,
+        prevDoc: docs[index],
+      });
     });
 
-    return doc;
+    return updated.length > 1 ? updated : updated[0];
+  }
+
+  /**
+  * Remove one or many documents found by query
+  *
+  * @param query {Object} - mongodb search query
+  * @param options {Object} - mongodb search query
+  */
+  async remove(query, options = {}) {
+    const findOptions = {};
+    if (options.session) findOptions.session = options.session;
+    const removed = await this.find(query, findOptions);
+    await this._collection.remove(query, options);
+
+    removed.results.forEach((doc) => {
+      this._bus.emit('removed', {
+        doc,
+      });
+    });
+
+    return removed;
   }
 
   async performTransaction(transactionFn, options = {}) {
@@ -153,26 +246,6 @@ class MongoService extends MongoQueryService {
     const session = this._collection.manager._client.startSession(options);
 
     return session.withTransaction(() => transactionFn(session));
-  }
-
-  update(query, update, options = {}) {
-    const updateQuery = this._getUpdateQuery(update);
-    return this._collection.update(query, updateQuery, options);
-  }
-
-  findOneAndUpdate(query, update, options = {}) {
-    const updateQuery = this._getUpdateQuery(update);
-    return this._collection.findOneAndUpdate(query, updateQuery, options);
-  }
-
-  /**
-  * Remove one or many documents found by query
-  *
-  * @param query {Object} - mongodb search query
-  * @param options {Object} - mongodb search query
-  */
-  remove(query, options = {}) {
-    return this._collection.remove(query, options);
   }
 
   /**
