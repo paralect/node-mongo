@@ -1,5 +1,8 @@
+const _ = require('lodash');
+
 const idGenerator = require('./idGenerator');
 const MongoServiceError = require('./MongoServiceError');
+
 
 class MongoQueryService {
   constructor(collection, options = {}) {
@@ -27,11 +30,11 @@ class MongoQueryService {
   * list of items and total count of all matched items
   */
   async find(query = {}, opt = { perPage: 100, page: 0 }) {
-    const options = opt;
-    const hasPaging = options.page > 0;
-    const { perPage } = options;
+    const options = _.cloneDeep(opt);
+    const { page, perPage } = options;
+    const hasPaging = page > 0;
     if (hasPaging) {
-      options.skip = (options.page - 1) * perPage;
+      options.skip = (page - 1) * perPage;
       options.limit = perPage;
     }
     delete options.perPage;
@@ -44,7 +47,9 @@ class MongoQueryService {
       };
     }
 
-    const count = await this._collection.count(query);
+    const countOptions = {};
+    if (options.session) countOptions.session = options.session;
+    const count = await this._collection.count(query, countOptions);
     const pagesCount = Math.ceil(count / perPage) || 1;
 
     return {
@@ -63,15 +68,16 @@ class MongoQueryService {
   * @return {Object} - returns a document from the database
   */
   async findOne(query = {}, options = {}) {
-    const data = await this.find(query, options);
-    if (data.results.length > 1) {
+    const { results } = await this.find(query, { limit: 2, ...options });
+
+    if (results.length > 1) {
       throw new MongoServiceError(
         MongoServiceError.MORE_THAN_ONE,
         `findOne: More than one document return for query ${JSON.stringify(query)}`,
       );
     }
 
-    return data.results.length === 1 ? data.results[0] : null;
+    return results[0] || null;
   }
 
   /**
@@ -105,7 +111,7 @@ class MongoQueryService {
   * @return {Boolean}
   */
   async exists(query, options = {}) {
-    const count = await this.count(query, options);
+    const count = await this.count(query, { limit: 1, ...options });
     return count > 0;
   }
 
