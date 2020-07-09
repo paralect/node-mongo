@@ -165,7 +165,7 @@ class MongoService extends MongoQueryService {
       });
     });
 
-    return entities.length > 1 ? entities : entities[0];
+    return created.length > 1 ? created : created[0];
   }
 
   /**
