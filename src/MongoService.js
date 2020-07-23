@@ -6,7 +6,7 @@ const idGenerator = require('./idGenerator');
 const MongoServiceError = require('./MongoServiceError');
 
 
-const { logger } = global;
+const { logger = console } = global;
 
 const defaultOptions = {
   addCreatedOnField: true,
@@ -89,18 +89,22 @@ class MongoService extends MongoQueryService {
 
   _validateSchema(entity) {
     if (this._options.validateSchema) {
-      const { errors } = this._options.validateSchema(entity);
+      const { value, error } = this._options.validateSchema(entity);
 
-      if (errors) {
-        logger.error('Schema invalid', JSON.stringify(errors.details, 0, 4));
+      if (error) {
+        logger.error('Schema invalid', JSON.stringify(error.details, 0, 4));
 
         throw new MongoServiceError(
           MongoServiceError.INVALID_SCHEMA,
-          `Document schema is invalid: ${JSON.stringify(errors.details)}`,
-          errors,
+          `Document schema is invalid: ${JSON.stringify(error.details)}`,
+          error,
         );
       }
+
+      return value;
     }
+
+    return entity;
   }
 
   emit(eventName, event) {
@@ -152,9 +156,9 @@ class MongoService extends MongoQueryService {
 
       if (this._options.useStringId && !entity._id) entity._id = idGenerator.generate();
       if (this._options.addCreatedOnField && !entity.createdOn) entity.createdOn = new Date();
-      await this._validateSchema(entity);
+      const validated = await this._validateSchema(entity);
 
-      return entity;
+      return validated;
     }));
 
     await this._collection.insert(created, options);
@@ -196,9 +200,9 @@ class MongoService extends MongoQueryService {
 
       if (this._options.addUpdatedOnField) entity.updatedOn = new Date();
       entity = await updateFn(entity, index, docs);
-      await this._validateSchema(entity);
+      const validated = await this._validateSchema(entity);
 
-      return entity;
+      return validated;
     }));
 
     await Promise.all(updated.map((doc) => {
