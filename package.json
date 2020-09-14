@@ -1,6 +1,6 @@
 {
   "name": "@paralect/node-mongo",
-  "version": "2.0.0-beta.6",
+  "version": "2.0.0-beta.7",
   "author": "Paralect",
   "description": "MongoDB wrapper for Node.JS 8",
   "private": false,
@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "lodash": "4.17.19",
-    "monk": "7.1.0"
+    "monk": "7.3.0"
   },
   "devDependencies": {
     "@paralect/eslint-config": "^1.1.0",
