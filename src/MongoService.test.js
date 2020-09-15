@@ -264,9 +264,9 @@ module.exports = () => {
       }
     });
 
-    it('should return empty array if document not found', async () => {
-      const updatedUsers = await userService.update({ name: 'Magneto' }, () => {});
-      updatedUsers.should.be.an('array').that.is.empty;
+    it('should return null if document not found', async () => {
+      const updatedDoc = await userService.update({ name: 'Magneto' }, () => {});
+      updatedDoc.should.be.null;
     });
 
     it('should create user using custom method createByName', async () => {

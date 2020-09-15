@@ -189,7 +189,7 @@ class MongoService extends MongoQueryService {
     if (options.session) findOptions.session = options.session;
     const { results: docs } = await this.find(query, findOptions);
     if (!docs.length) {
-      return [];
+      return null;
     }
 
     const updated = await Promise.all(docs.map(async (doc, index) => {
