@@ -189,10 +189,7 @@ class MongoService extends MongoQueryService {
     if (options.session) findOptions.session = options.session;
     const { results: docs } = await this.find(query, findOptions);
     if (!docs.length) {
-      throw new MongoServiceError(
-        MongoServiceError.NOT_FOUND,
-        `Documents not found while updating. Query: ${JSON.stringify(query)}`,
-      );
+      return [];
     }
 
     const updated = await Promise.all(docs.map(async (doc, index) => {

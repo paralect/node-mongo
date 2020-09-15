@@ -264,12 +264,9 @@ module.exports = () => {
       }
     });
 
-    it('should return an error that document not found', async () => {
-      try {
-        await userService.update({ name: 'Magneto' }, () => {});
-      } catch (err) {
-        err.message.should.be.equal('Document not found while updating. Query: {"name":"Magneto"}');
-      }
+    it('should return empty array if document not found', async () => {
+      const updatedUsers = await userService.update({ name: 'Magneto' }, () => {});
+      updatedUsers.should.be.an('array').that.is.empty;
     });
 
     it('should create user using custom method createByName', async () => {
