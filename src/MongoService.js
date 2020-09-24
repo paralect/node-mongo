@@ -180,7 +180,46 @@ class MongoService extends MongoQueryService {
   * @param updateFn {function(doc)} - function, that recieves document to be updated
   * @return {Object} Updated object
   */
-  async update(query, updateFn, options = {}) {
+ async updateOne(query, updateFn, options = {}) {
+  if (!_.isFunction(updateFn)) {
+    throw new Error('updateFn must be a function');
+  }
+
+  const findOptions = {};
+  if (options.session) findOptions.session = options.session;
+  const doc = await this.findOne(query, findOptions);
+  if (!doc) {
+    throw new MongoServiceError(
+      MongoServiceError.NOT_FOUND,
+      `Document not found while updating. Query: ${JSON.stringify(query)}`,
+    );
+  }
+
+  let entity = _.cloneDeep(doc);
+  
+  if (this._options.addUpdatedOnField) entity.updatedOn = new Date();
+  entity = await updateFn(entity, index, docs);
+  const updated = await this._validateSchema(entity);
+
+  await this._collection.update({ ...query, _id: doc._id }, { $set: updated }, options);
+
+  this._bus.emit('updated', {
+    doc: updated,
+    prevDoc: doc,
+  });
+
+  return updated;
+}
+
+  /**
+  * Modifies entities found by query in the database
+  * Sets updatedOn to the current date
+  *
+  * @param query {Object} - mongo search query
+  * @param updateFn {function(doc)} - function, that recieves documents to be updated
+  * @return {Object} Updated array
+  */
+  async updateMany(query, updateFn, options = {}) {
     if (!_.isFunction(updateFn)) {
       throw new Error('updateFn must be a function');
     }
@@ -188,12 +227,6 @@ class MongoService extends MongoQueryService {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
     const { results: docs } = await this.find(query, findOptions);
-    if (!docs.length) {
-      throw new MongoServiceError(
-        MongoServiceError.NOT_FOUND,
-        `Documents not found while updating. Query: ${JSON.stringify(query)}`,
-      );
-    }
 
     const updated = await Promise.all(docs.map(async (doc, index) => {
       let entity = _.cloneDeep(doc);
@@ -216,7 +249,7 @@ class MongoService extends MongoQueryService {
       });
     });
 
-    return updated.length > 1 ? updated : updated[0];
+    return updated;
   }
 
   /**
