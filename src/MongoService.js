@@ -87,9 +87,9 @@ class MongoService extends MongoQueryService {
     return changed;
   }
 
-  _validateSchema(entity) {
+  async _validateSchema(entity) {
     if (this._options.validateSchema) {
-      const { value, error } = this._options.validateSchema(entity);
+      const { value, error } = await this._options.validateSchema(entity);
 
       if (error) {
         logger.error('Schema invalid', JSON.stringify(error.details, 0, 4));
@@ -198,7 +198,7 @@ class MongoService extends MongoQueryService {
   let entity = _.cloneDeep(doc);
   
   if (this._options.addUpdatedOnField) entity.updatedOn = new Date();
-  entity = await updateFn(entity, index, docs);
+  entity = await updateFn(entity);
   const updated = await this._validateSchema(entity);
 
   await this._collection.update({ ...query, _id: doc._id }, { $set: updated }, options);
@@ -227,12 +227,13 @@ class MongoService extends MongoQueryService {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
     const { results: docs } = await this.find(query, findOptions);
+    if (docs.length === 0) return [];
 
-    const updated = await Promise.all(docs.map(async (doc, index) => {
+    const updated = await Promise.all(docs.map(async (doc) => {
       let entity = _.cloneDeep(doc);
 
       if (this._options.addUpdatedOnField) entity.updatedOn = new Date();
-      entity = await updateFn(entity, index, docs);
+      entity = await updateFn(entity);
       const validated = await this._validateSchema(entity);
 
       return validated;
