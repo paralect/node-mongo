@@ -1,3 +1,3 @@
 global.logger = console;
-require('./MongoService.test')();
-require('./MongoQueryService.test')();
+require('./mongo-service.test')();
+require('./mongo-query-service.test')();

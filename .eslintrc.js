@@ -1,3 +1,9 @@
 module.exports = {
-  "extends": "@paralect/eslint-config"
+  extends: 'airbnb-base',
+  rules: {
+    'no-underscore-dangle': 0,
+  },
+  env: {
+    mocha: true,
+  },
 };

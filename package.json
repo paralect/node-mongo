@@ -2,16 +2,13 @@
   "name": "@paralect/node-mongo",
   "version": "2.0.0-beta.7",
   "author": "Paralect",
-  "description": "MongoDB wrapper for Node.JS 8",
+  "description": "MongoDB wrapper for Node.JS 12",
   "private": false,
   "main": "src/index.js",
   "scripts": {
     "test": "run-s test:*",
     "test:eslint": "eslint ./",
-    "test:mocha": "NODE_ENV=test mocha --exit --recursive -c -R spec src/index.test.js",
-    "coveralls": "istanbul cover _mocha --report lcovonly -- --exit --recursive -c -R spec src/index.test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
-    "add-contributor": "all-contributors add",
-    "generate-contributors": "all-contributors generate"
+    "test:mocha": "NODE_ENV=test mocha --exit --recursive -c -R spec src/index.test.js"
   },
   "keywords": [
     "mongo",
@@ -20,28 +17,20 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "lodash": "4.17.19",
-    "monk": "7.3.0"
+    "lodash": "4.17.20",
+    "monk": "7.3.2"
   },
   "devDependencies": {
-    "@paralect/eslint-config": "^1.1.0",
-    "all-contributors-cli": "^6.7.0",
-    "babel-eslint": "^10.0.2",
     "chai": "^4.2.0",
-    "coveralls": "^3.0.4",
-    "eslint": "^6.0.1",
-    "eslint-plugin-import": "^2.18.0",
-    "eslint-plugin-jsx-a11y": "^6.2.1",
-    "eslint-plugin-react": "^7.14.2",
-    "istanbul": "^0.4.5",
-    "joi": "^14.3.1",
-    "jsonschema": "1.2.4",
-    "mocha": "^6.1.4",
-    "mocha-lcov-reporter": "1.3.0",
+    "chai-spies": "^1.0.0",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "mocha": "^8.1.3",
     "npm-run-all": "^4.1.5"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=12.0.0"
   },
   "repository": {
     "type": "git",

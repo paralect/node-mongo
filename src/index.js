@@ -2,10 +2,8 @@ const monk = require('monk');
 const { EventEmitter } = require('events');
 const _ = require('lodash');
 
-const MongoService = require('./MongoService');
-const MongoQueryService = require('./MongoQueryService');
-const idGenerator = require('./idGenerator');
-
+const MongoService = require('./mongo-service');
+const MongoQueryService = require('./mongo-query-service');
 
 const logger = global.logger || console;
 
@@ -83,4 +81,3 @@ const connect = (connectionString, settings) => {
 };
 
 module.exports.connect = connect;
-module.exports.idGenerator = idGenerator;
