@@ -1,6 +1,5 @@
 const _ = require('lodash');
 
-const generateId = require('./generate-id');
 const MongoServiceError = require('./mongo-service-error');
 
 class MongoQueryService {
@@ -9,8 +8,6 @@ class MongoQueryService {
     this._options = options;
 
     this.name = collection.name;
-
-    this.generateId = generateId;
 
     this.aggregate = collection.aggregate;
     this.count = collection.count;
@@ -21,17 +18,6 @@ class MongoQueryService {
     this.stats = collection.stats;
   }
 
-  /**
-  * Works as find, but also return paged results if page > 0
-  * More documentation: https://automattic.github.io/monk/docs/collection/find.html
-  *
-  * @param query {string} mongo search query
-  * @param opt.perPage {Number} number of items to return per page
-  * @param opt.page {Number} a page number to return
-  *
-  * @return {pagesCount, results, count} {Object} - number of pages,
-  * list of items and total count of all matched items
-  */
   async find(query = {}, opt = { perPage: 100, page: 0 }) {
     const options = _.cloneDeep(opt);
     const { page, perPage } = options;
@@ -62,14 +48,6 @@ class MongoQueryService {
     };
   }
 
-  /**
-  * Finds one document, if multiple returned - throws an error
-  *
-  * @param query {Object} - search query
-  * @param options {Object} - search options, such fields and others
-  *
-  * @return {Object} - returns a document from the database
-  */
   async findOne(query = {}, options = {}) {
     const { results } = await this.find(query, { limit: 2, ...options });
 
@@ -83,13 +61,6 @@ class MongoQueryService {
     return results[0] || null;
   }
 
-  /**
-  * Checks if document exists by specified query
-  *
-  * @param query {string} - search query
-  * @param options {Object} - options
-  * @return {Boolean}
-  */
   async exists(query, options = {}) {
     const count = await this.count(query, { limit: 1, ...options });
     return count > 0;

@@ -17,8 +17,8 @@ module.exports = () => {
   describe('MongoService with default options', () => {
     const service = db.createService('mongo-service-test');
 
-    before(() => service.drop());
-    after(() => service.drop());
+    before(() => service.atomic.drop());
+    after(() => service.atomic.drop());
 
     describe('handlers', () => {
       it('should call `on` handler at least twice', async () => {
@@ -191,6 +191,23 @@ module.exports = () => {
       });
     });
 
+    describe('performTransaction', () => {
+      it('should work', async () => {
+        const _id = service.generateId();
+        const name = service.generateId();
+        await service.performTransaction(async (session) => {
+          const createdUser = await service.create({ _id }, { session });
+          return service.updateOne(
+            { _id: createdUser._id },
+            (doc) => ({ ...doc, name }),
+            { session },
+          );
+        });
+        const doc = await service.findOne({ _id });
+        doc.name.should.be.equal(name);
+      });
+    });
+
     describe('custom service method', () => {
       it('should work', async () => {
         const name = service.generateId();
@@ -207,8 +224,8 @@ module.exports = () => {
       useStringId: false,
     });
 
-    before(() => service.drop());
-    after(() => service.drop());
+    before(() => service.atomic.drop());
+    after(() => service.atomic.drop());
 
     describe('create', () => {
       it('should give you an object with the object `_id` and without `createdOn` field', async () => {
@@ -250,9 +267,9 @@ module.exports = () => {
     });
   });
 
-  describe('MongoService with `validateSchema` option', () => {
+  describe('MongoService with `validate` option', () => {
     const service = db.createService('mongo-service-test', {
-      validateSchema: (object) => {
+      validate: (object) => {
         if (!object.name) {
           return {
             value: object,
@@ -266,8 +283,8 @@ module.exports = () => {
       },
     });
 
-    before(() => service.drop());
-    after(() => service.drop());
+    before(() => service.atomic.drop());
+    after(() => service.atomic.drop());
 
     describe('create', () => {
       it('should throw an error if input is invalid', async () => {

@@ -24,6 +24,12 @@ module.exports = () => {
     });
     after(() => queryService._collection.drop());
 
+    describe('name', () => {
+      it('should exists', async () => {
+        queryService.name.should.be.equal('mongo-query-service-test');
+      });
+    });
+
     describe('find', () => {
       it('should return plain response if page property is not specified', async () => {
         const response = await queryService.find({});
@@ -65,13 +71,6 @@ module.exports = () => {
       it('should return false if document does not exist', async () => {
         const response = await queryService.exists({ name: 'Jim' });
         response.should.be.equal(false);
-      });
-    });
-
-    describe('generateId', () => {
-      it('should return ID', async () => {
-        const id = queryService.generateId();
-        id.length.should.be.equal(24);
       });
     });
 

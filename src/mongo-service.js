@@ -1,3 +1,4 @@
+const monk = require('monk');
 const { EventEmitter } = require('events');
 const _ = require('lodash');
 
@@ -8,7 +9,7 @@ const defaultOptions = {
   addCreatedOnField: true,
   addUpdatedOnField: true,
   useStringId: true,
-  validateSchema: undefined,
+  validate: undefined,
 };
 
 class MongoService extends MongoQueryService {
@@ -19,13 +20,14 @@ class MongoService extends MongoQueryService {
 
     this._bus = eventBus;
 
-    this.createIndex = collection.createIndex;
-    this.drop = collection.drop;
-    this.dropIndex = collection.dropIndex;
-    this.dropIndexes = collection.dropIndexes;
+    this.generateId = () => monk.id().toHexString();
 
     this.atomic = {
       bulkWrite: collection.bulkWrite,
+      createIndex: collection.createIndex,
+      drop: collection.drop,
+      dropIndex: collection.dropIndex,
+      dropIndexes: collection.dropIndexes,
       findOneAndDelete: collection.findOneAndDelete,
       findOneAndUpdate: collection.findOneAndUpdate,
       insert: collection.insert,
@@ -45,17 +47,6 @@ class MongoService extends MongoQueryService {
       });
   }
 
-  /**
-   * Deep compare data & initialData. When
-   * something changed - executes callback
-   *
-   * @param  {Array|Object} properties
-   * 1) Array of properties to compare. For example: ['user.firstName', 'companyId']
-   * 2) Object of properties {'user.firstName': 'John'} - will check if property changed and equal
-   * to 'John' in updated document.
-   * Note: . (dot) is used to compare deeply nested properties
-   * @return {Boolean} - indicates if something has changed
-   */
   static _deepCompare(data, initialData, properties) {
     let changed = false;
 
@@ -82,14 +73,14 @@ class MongoService extends MongoQueryService {
     return changed;
   }
 
-  async _validateSchema(entity) {
-    if (this._options.validateSchema) {
-      const { value, error } = await this._options.validateSchema(entity);
+  async _validate(entity) {
+    if (this._options.validate) {
+      const { value, error } = await this._options.validate(entity);
 
       if (error) {
         throw new MongoServiceError(
           MongoServiceError.INVALID_SCHEMA,
-          `Document schema is invalid: ${JSON.stringify(error.details)}`,
+          `Document schema is invalid: ${JSON.stringify(error)}`,
           error,
         );
       }
@@ -104,28 +95,14 @@ class MongoService extends MongoQueryService {
     return this._bus.emit(eventName, event);
   }
 
-  /**
-  * Subscribe to database change events only once. The first time evenName
-  * is triggered listener handler is removed and then invoked
-  */
   once(eventName, handler) {
     return this._bus.once(eventName, handler);
   }
 
-  /**
-  * Subscribe to database change events.
-  */
   on(eventName, handler) {
     return this._bus.on(eventName, handler);
   }
 
-  /**
-   * Deep compare doc & prevDoc from 'updated' event. When
-   * something changed - executes handler
-   *
-   * @param  {Array|Object} properties - see deepCompare
-   * @param  {Function} handler - executes handler if something changed
-   */
   onPropertiesUpdated(properties, handler) {
     return this.on('updated', (event) => {
       const isChanged = MongoService._deepCompare(event.doc, event.prevDoc, properties);
@@ -133,14 +110,6 @@ class MongoService extends MongoQueryService {
     });
   }
 
-  /**
-  * Insert one object or array of the objects to the database
-  * Sets createdOn to the current date
-  *
-  * @param {array | object} Object or array of objects to create
-  * @param {object} Object of options
-  * @return {array | object} Object or array of created objects
-  */
   async create(objs, options = {}) {
     const entities = _.isArray(objs) ? objs : [objs];
 
@@ -151,7 +120,7 @@ class MongoService extends MongoQueryService {
       if (this._options.addCreatedOnField && !entity.createdOn) {
         entity.createdOn = new Date().toISOString();
       }
-      const validated = await this._validateSchema(entity);
+      const validated = await this._validate(entity);
 
       return validated;
     }));
@@ -167,14 +136,6 @@ class MongoService extends MongoQueryService {
     return created.length > 1 ? created : created[0];
   }
 
-  /**
-  * Modifies entity found by query in the database
-  * Sets updatedOn to the current date
-  *
-  * @param query {Object} - mongo search query
-  * @param updateFn {function(doc)} - function, that recieves document to be updated
-  * @return {Object} Updated object
-  */
   async updateOne(query, updateFn, options = {}) {
     if (!_.isFunction(updateFn)) {
       throw new MongoServiceError(
@@ -197,7 +158,7 @@ class MongoService extends MongoQueryService {
 
     if (this._options.addUpdatedOnField) entity.updatedOn = new Date().toISOString();
     entity = await updateFn(entity);
-    const updated = await this._validateSchema(entity);
+    const updated = await this._validate(entity);
 
     await this._collection.update(
       { ...query, _id: doc._id },
@@ -213,14 +174,6 @@ class MongoService extends MongoQueryService {
     return updated;
   }
 
-  /**
-  * Modifies entities found by query in the database
-  * Sets updatedOn to the current date
-  *
-  * @param query {Object} - mongo search query
-  * @param updateFn {function(doc)} - function, that recieves documents to be updated
-  * @return {Object} Updated array
-  */
   async updateMany(query, updateFn, options = {}) {
     if (!_.isFunction(updateFn)) {
       throw new MongoServiceError(
@@ -239,7 +192,7 @@ class MongoService extends MongoQueryService {
 
       if (this._options.addUpdatedOnField) entity.updatedOn = new Date().toISOString();
       entity = await updateFn(entity);
-      const validated = await this._validateSchema(entity);
+      const validated = await this._validate(entity);
 
       return validated;
     }));
@@ -262,12 +215,6 @@ class MongoService extends MongoQueryService {
     return updated;
   }
 
-  /**
-  * Remove one or many documents found by query
-  *
-  * @param query {Object} - mongodb search query
-  * @param options {Object} - mongodb search query
-  */
   async remove(query, options = {}) {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
@@ -295,7 +242,12 @@ class MongoService extends MongoQueryService {
 
     const session = this._collection.manager._client.startSession(options);
 
-    return session.withTransaction(() => transactionFn(session));
+    try {
+      await session.withTransaction(transactionFn);
+    } catch (error) {
+      session.endSession();
+      throw error;
+    }
   }
 }
 
