@@ -1,3 +1,52 @@
+## v2.0.0 (2020-09-29)
+
+* Update dependencies.
+
+### Breaking Changes
+
+#### [Manager](API.md#manager)
+
+[createQueryService](API.md#createqueryservice)
+- Rename `validateSchema` option to `validate`.
+- Change `addCreatedOnField` default to `true`.
+- Change `addUpdatedOnField` default to `true`.
+
+[createService](API.md#createservice)
+- Rename `validateSchema` option to `validate`.
+- Change `addCreatedOnField` default to `true`.
+- Change `addUpdatedOnField` default to `true`.
+
+#### [Query Service](API.md#query-service)
+- Remove `generateId` method.
+- Remove `expectDocument` method.
+
+#### [Service](API.md#service)
+- Remove `update` method. Use [updateOne](API.md#updateone) or [updateMany](API.md#updatemany).
+- Remove `ensureIndex`. Use [atomic.createIndex](API.md#atomiccreateindex).
+- Remove `createOrUpdate`. Use [create](API.md#create) or [updateOne](API.md#updateone) or [updateMany](API.md#updatemany).
+- Remove `findOneAndUpdate`. Use [findOne](API.md#findone) and [updateOne](API.md#updateone).
+
+### Features
+
+#### Manager
+
+[createQueryService](API.md#createqueryservice)
+- Add `useStringId` option.
+
+[createService](API.md#createservice)
+- Add `useStringId` option.
+
+#### [Query Service](API.md#query-service)
+- Add more monk's methods. [See full list](API.md#query-service)
+
+#### [Service](API.md#service)
+- Add [generateId](API.md#generateid) method.
+- Add [updateOne](API.md#updateone) method.
+- Add [updateMany](API.md#updatemany) method.
+- Add [performTransaction](API.md#performtransaction) method.
+- Add more monk's methods in `atomic` namespace. [See full list](API.md#service)
+
+
 ## v1.1.0 (2019-06-25)
 
 * Update dependencies.

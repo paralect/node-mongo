@@ -8,7 +8,8 @@ class MongoServiceError extends Error {
 }
 
 MongoServiceError.NOT_FOUND = 'NOT_FOUND';
-MongoServiceError.INVALID_SCHEMA = 'INVALID_SCHEMA';
 MongoServiceError.MORE_THAN_ONE = 'MORE_THAN_ONE';
+MongoServiceError.INVALID_SCHEMA = 'INVALID_SCHEMA';
+MongoServiceError.INVALID_ARGUMENT = 'INVALID_ARGUMENT';
 
 module.exports = MongoServiceError;
