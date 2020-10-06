@@ -17,18 +17,28 @@ Node Mongo is reactive extension to MongoDB API. It provides few usability impro
 npm i @paralect/node-mongo
 ```
 
-## Quick example
+## Documentation
 
-Connect to the database:
+[API Reference](API.md).
+
+## Usage
+
+### Connect to MongoDB
 ```javascript
-const connectionString = `mongodb://localhost:27017/home-db`;
+const connectionString = 'mongodb://localhost:27017/home-db';
 const db = require('node-mongo').connect(connectionString);
 ```
 
-Short API overview, for more details see [Full API reference](API.md)
+### CRUD Operations
 ```javascript
 // create a service to work with specific database collection
 const userService = db.createService('users');
+
+// create documents
+const users = await userService.create([
+  { name: 'Alex' },
+  { name: 'Bob' },
+]);
 
 // find one document
 const user = await userService.findOne({ name: 'Bob' });
@@ -45,37 +55,44 @@ const updatedUser = await userService.updateOne(
   (doc) => ({ ...doc, name: 'Alex' }),
 );
 
-// subscribe to document updates
+// remove document
+const removedUser = await userService.remove({ _id: '1' });
+```
+
+### Event handlers
+```js
+const userService = db.createService('users');
+
+userService.on('created', ({ doc }) => {
+});
+
 userService.on('updated', ({ doc, prevDoc }) => {
+});
+
+userService.onPropertiesUpdated(['email'], ({ doc, prevDoc }) => {
+});
+
+userService.on('removed', ({ doc }) => {
 });
 ```
 
-Schema declaration (`user.schema.js`):
+### Schema validation
 ```javascript
 const Joi = require('Joi');
 
-const companySchema = Joi.object({
+const userSchema = Joi.object({
   _id: Joi.string(),
   createdOn: Joi.date(),
   name: Joi.string(),
   status: Joi.string().valid('active', 'inactive'),
 });
 
-exports.schema = companySchema;
-
-exports.validate = (obj) => companySchema.validate(obj);
-```
-
-Schema validation:
-```javascript
-const { validate } = require('./user.schema');
+function validate(obj) {
+  return userSchema.validate(obj);
+}
 
 const userService = db.createService('users', { validate });
 ```
-
-## Full API Reference
-
-[API Reference](API.md).
 
 ## Change Log
 
