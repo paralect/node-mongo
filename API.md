@@ -117,6 +117,7 @@ Create and return [Service](#service) instance.
   - `addUpdatedOnField: Boolean = true` - if `true`, we add and update the `updatedOn` field for each document to be updated using [updateOne](#updateone) or [updateMany](#updatemany) methods.
   - `useStringId: Boolean = true` - if `true`, we replace `_id` ([ObjectId](https://docs.mongodb.com/manual/reference/method/ObjectId/) by default) with a string that is generated using the [generateId](#generateid) method.
   - `validate: (doc) => Promise<{ error, value }>` - optional function that accepts a collection document and returns the result of the validation of this document. Result should be an object with `value` and `error` fields. The error will be thrown if `error` is a truthy value.
+  - `emitter: Emitter = new EventEmitter()` - optional instance of Emitter, which partially implements the [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter) interface ([emit](https://nodejs.org/api/events.html#events_emitter_emit_eventname_args), [on](https://nodejs.org/api/events.html#events_emitter_on_eventname_listener), [once](https://nodejs.org/api/events.html#events_emitter_once_eventname_listener) methods are enough).
 
 #### Returns:
 A [Service](#service) instance.

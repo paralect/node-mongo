@@ -10,15 +10,16 @@ const defaultOptions = {
   addUpdatedOnField: true,
   useStringId: true,
   validate: undefined,
+  emitter: new EventEmitter(),
 };
 
 class MongoService extends MongoQueryService {
-  constructor(collection, options = {}, eventBus = new EventEmitter()) {
+  constructor(collection, options = {}) {
     super(collection, options);
 
     _.defaults(this._options, defaultOptions);
 
-    this._bus = eventBus;
+    this._bus = this._options.emitter;
 
     this.generateId = () => monk.id().toHexString();
 
