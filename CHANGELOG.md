@@ -1,3 +1,12 @@
+## v2.1.0 (2020-10-15)
+
+### Features
+
+#### Manager
+
+[createService](API.md#createservice)
+- Add [emitter](API.md#createservice) option.
+
 ## v2.0.0 (2020-09-29)
 
 * Update dependencies.

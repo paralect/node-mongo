@@ -26,7 +26,7 @@ npm i @paralect/node-mongo
 ### Connect to MongoDB
 ```javascript
 const connectionString = 'mongodb://localhost:27017/home-db';
-const db = require('node-mongo').connect(connectionString);
+const db = require('@paralect/node-mongo').connect(connectionString);
 ```
 
 ### CRUD Operations
