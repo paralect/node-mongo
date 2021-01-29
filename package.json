@@ -1,6 +1,6 @@
 {
   "name": "@paralect/node-mongo",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": "Paralect",
   "description": "MongoDB wrapper for Node.JS 12",
   "private": false,
