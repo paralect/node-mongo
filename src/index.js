@@ -1,5 +1,4 @@
 const monk = require('monk');
-const { EventEmitter } = require('events');
 const _ = require('lodash');
 
 const MongoService = require('./mongo-service');
@@ -36,10 +35,10 @@ const connect = (connectionString, settings) => {
     }
   });
 
-  db.createService = (collectionName, options = {}, eventBus = new EventEmitter()) => {
+  db.createService = (collectionName, options = {}) => {
     const collection = db.get(collectionName, { castIds: false });
 
-    return new MongoService(collection, options, eventBus);
+    return new MongoService(collection, options);
   };
 
   db.setServiceMethod = (name, method) => {
@@ -48,10 +47,10 @@ const connect = (connectionString, settings) => {
     };
   };
 
-  db.createQueryService = (collectionName, options = {}, eventBus = new EventEmitter()) => {
+  db.createQueryService = (collectionName, options = {}) => {
     const collection = db.get(collectionName, { castIds: false });
 
-    return new MongoQueryService(collection, options, eventBus);
+    return new MongoQueryService(collection, options);
   };
 
   db.setQueryServiceMethod = (name, method) => {

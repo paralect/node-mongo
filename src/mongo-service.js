@@ -10,7 +10,7 @@ const defaultOptions = {
   addUpdatedOnField: true,
   useStringId: true,
   validate: undefined,
-  emitter: new EventEmitter(),
+  emitter: undefined,
 };
 
 class MongoService extends MongoQueryService {
@@ -19,7 +19,7 @@ class MongoService extends MongoQueryService {
 
     _.defaults(this._options, defaultOptions);
 
-    this._bus = this._options.emitter;
+    this._bus = this._options.emitter || new EventEmitter();
 
     this.generateId = () => monk.id().toHexString();
 
