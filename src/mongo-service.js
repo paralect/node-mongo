@@ -163,8 +163,8 @@ class MongoService extends MongoQueryService {
 
     await this._collection.update(
       { ...query, _id: doc._id },
-      { $set: updated },
-      options,
+      updated,
+      { ...options, replaceOne: true },
     );
 
     this._bus.emit('updated', {
@@ -198,13 +198,13 @@ class MongoService extends MongoQueryService {
       return validated;
     }));
 
-    await Promise.all(
-      updated.map((doc) => this._collection.update(
-        { ...query, _id: doc._id },
-        { $set: doc },
-        options,
-      )),
-    );
+    const updatePromises = updated.map((doc) => this._collection.update(
+      { ...query, _id: doc._id },
+      doc,
+      { ...options, replaceOne: true },
+    ));
+
+    await Promise.all(updatePromises);
 
     updated.forEach((doc, index) => {
       this._bus.emit('updated', {
