@@ -244,10 +244,9 @@ class MongoService extends MongoQueryService {
     const session = this._collection.manager._client.startSession(options);
 
     try {
-      await session.withTransaction(transactionFn);
-    } catch (error) {
+      await session.withTransaction(() => transactionFn(session));
+    } finally {
       session.endSession();
-      throw error;
     }
   }
 }
