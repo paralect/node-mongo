@@ -1,4 +1,5 @@
-const monk = require('monk');
+const { MongoClient } = require('mongodb');
+// https://mongodb.github.io/node-mongodb-native/4.1/index.html
 const _ = require('lodash');
 
 const MongoService = require('./mongo-service');
@@ -8,18 +9,17 @@ const logger = global.logger || console;
 
 const connect = (connectionString, settings) => {
   const connectionSettings = _.defaults({}, settings, { connectTimeoutMS: 20000 });
-  const db = monk(connectionString, connectionSettings);
+  const client = new MongoClient(connectionString, connectionSettings);
+  client.connect();
+  const db = client.db();
 
-  db.on('error-opening', (err) => {
+  client.on('error', (err) => {
+    // https://mongodb.github.io/node-mongodb-native/4.1/classes/MongoClient.html#eventNames
     logger.error(err, 'Failed to connect to the mongodb on start');
     throw err;
   });
 
-  db.on('open', () => {
-    logger.info(`Connected to mongodb: ${connectionString}`);
-  });
-
-  db.on('close', (err) => {
+  client.on('close', (err) => {
     if (err) {
       logger.error(err, `Lost connection with mongodb: ${connectionString}`);
     } else {
@@ -27,7 +27,7 @@ const connect = (connectionString, settings) => {
     }
   });
 
-  db.on('connected', (err) => {
+  client.on('connectionReady', (err) => {
     if (err) {
       logger.error(err);
     } else {
@@ -36,26 +36,26 @@ const connect = (connectionString, settings) => {
   });
 
   db.createService = (collectionName, options = {}) => {
-    const collection = db.get(collectionName, { castIds: false });
+    const collection = db.collection(collectionName);
 
-    return new MongoService(collection, options);
+    return new MongoService(collection, options, client);
   };
 
   db.setServiceMethod = (name, method) => {
     MongoService.prototype[name] = function customMethod(...args) {
-      return method.apply(this, [this, ...args]);
+      return method.apply(this.collection, [this.collection, ...args]);
     };
   };
 
   db.createQueryService = (collectionName, options = {}) => {
-    const collection = db.get(collectionName, { castIds: false });
+    const collection = db.collection(collectionName);
 
     return new MongoQueryService(collection, options);
   };
 
   db.setQueryServiceMethod = (name, method) => {
     MongoQueryService.prototype[name] = function customMethod(...args) {
-      return method.apply(this, [this, ...args]);
+      return method.apply(this.collection, [this.collection, ...args]);
     };
   };
 

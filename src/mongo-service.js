@@ -1,4 +1,4 @@
-const monk = require('monk');
+const { ObjectId } = require('mongodb');
 const { EventEmitter } = require('events');
 const _ = require('lodash');
 
@@ -14,14 +14,14 @@ const defaultOptions = {
 };
 
 class MongoService extends MongoQueryService {
-  constructor(collection, options = {}) {
-    super(collection, options);
+  constructor(collection, options = {}, client) {
+    super(collection, options, client);
 
     _.defaults(this._options, defaultOptions);
 
     this._bus = this._options.emitter || new EventEmitter();
 
-    this.generateId = () => monk.id().toHexString();
+    this.generateId = () => (new ObjectId()).toHexString();
 
     this.atomic = {
       bulkWrite: collection.bulkWrite,
@@ -31,21 +31,20 @@ class MongoService extends MongoQueryService {
       dropIndexes: collection.dropIndexes,
       findOneAndDelete: collection.findOneAndDelete,
       findOneAndUpdate: collection.findOneAndUpdate,
-      insert: collection.insert,
-      remove: collection.remove,
-      update: collection.update,
+      insert: collection.insertOne,
+      remove: collection.deleteOne,
+      update: collection.updateOne,
     };
-
-    collection.manager.executeWhenOpened()
-      .then(async () => {
-        await collection.manager._db.command({ create: collection.name });
-      })
-      .catch((error) => {
-        // a collection already exists
-        if (error.code !== 48) {
-          throw error;
-        }
-      });
+    this.atomic.bulkWrite = collection.bulkWrite.bind(collection);
+    this.atomic.createIndex = collection.createIndex.bind(collection);
+    this.atomic.drop = collection.drop.bind(collection);
+    this.atomic.dropIndex = collection.dropIndex.bind(collection);
+    this.atomic.dropIndexes = collection.dropIndexes.bind(collection);
+    this.atomic.findOneAndDelete = collection.findOneAndDelete.bind(collection);
+    this.atomic.findOneAndUpdate = collection.findOneAndUpdate.bind(collection);
+    this.atomic.insert = collection.insertOne.bind(collection);
+    this.atomic.remove = collection.deleteOne.bind(collection);
+    this.atomic.update = collection.updateOne.bind(collection);
   }
 
   static _deepCompare(data, initialData, properties) {
@@ -126,13 +125,13 @@ class MongoService extends MongoQueryService {
       return validated;
     }));
 
-    await this._collection.insert(created, options);
-
-    created.forEach((doc) => {
+    const createCallback = (doc) => {
       this._bus.emit('created', {
         doc,
       });
-    });
+    };
+
+    await this._collection.insertMany(created, options, createCallback);
 
     return created.length > 1 ? created : created[0];
   }
@@ -161,16 +160,19 @@ class MongoService extends MongoQueryService {
     entity = await updateFn(entity);
     const updated = await this._validate(entity);
 
-    await this._collection.update(
-      { ...query, _id: doc._id },
-      updated,
-      { ...options, replaceOne: true },
-    );
+    const updateCallback = () => {
+      this._bus.emit('updated', {
+        doc: updated,
+        prevDoc: doc,
+      });
+    };
 
-    this._bus.emit('updated', {
-      doc: updated,
-      prevDoc: doc,
-    });
+    await this._collection.updateOne(
+      { ...query, _id: doc._id },
+      { $set: updated },
+      options,
+      updateCallback,
+    );
 
     return updated;
   }
@@ -185,7 +187,8 @@ class MongoService extends MongoQueryService {
 
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
-    const { results: docs } = await this.find(query, findOptions);
+    const { results } = await this.find(query, findOptions);
+    const docs = await results.toArray();
     if (docs.length === 0) return [];
 
     const updated = await Promise.all(docs.map(async (doc) => {
@@ -198,20 +201,19 @@ class MongoService extends MongoQueryService {
       return validated;
     }));
 
-    const updatePromises = updated.map((doc) => this._collection.update(
-      { ...query, _id: doc._id },
-      doc,
-      { ...options, replaceOne: true },
-    ));
-
-    await Promise.all(updatePromises);
-
-    updated.forEach((doc, index) => {
+    const updateCallback = (doc) => {
       this._bus.emit('updated', {
         doc,
-        prevDoc: docs[index],
+        prevDoc: docs.find((d) => d._id === doc._id),
       });
-    });
+    };
+
+    await this._collection.updateMany(
+      { ...query, _id: { $in: updated.map((doc) => doc._id) } },
+      updateFn,
+      options,
+      updateCallback,
+    );
 
     return updated;
   }
@@ -219,14 +221,13 @@ class MongoService extends MongoQueryService {
   async remove(query, options = {}) {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
-    const removed = await this.find(query, findOptions);
-    await this._collection.remove(query, options);
 
-    removed.results.forEach((doc) => {
+    const deleteCallback = (doc) => {
       this._bus.emit('removed', {
         doc,
       });
-    });
+    };
+    const removed = await this._collection.deleteMany(query, options, deleteCallback);
 
     return removed;
   }
@@ -239,9 +240,7 @@ class MongoService extends MongoQueryService {
       );
     }
 
-    await this._collection.manager.executeWhenOpened();
-
-    const session = this._collection.manager._client.startSession(options);
+    const session = this._client.startSession(options);
 
     try {
       await session.withTransaction(() => transactionFn(session));

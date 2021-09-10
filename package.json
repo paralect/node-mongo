@@ -12,13 +12,12 @@
   },
   "keywords": [
     "mongo",
-    "monk",
     "paralect"
   ],
   "license": "MIT",
   "dependencies": {
-    "lodash": "4.17.20",
-    "monk": "7.3.2"
+    "lodash": "^4.17.21",
+    "mongodb": "4.1.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",

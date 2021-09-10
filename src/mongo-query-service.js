@@ -3,19 +3,21 @@ const _ = require('lodash');
 const MongoServiceError = require('./mongo-service-error');
 
 class MongoQueryService {
-  constructor(collection, options = {}) {
+  constructor(collection, options = {}, client) {
     this._collection = collection;
     this._options = options;
+    this._client = client;
 
     this.name = collection.name;
 
-    this.aggregate = collection.aggregate;
-    this.count = collection.count;
-    this.distinct = collection.distinct;
-    this.geoHaystackSearch = collection.geoHaystackSearch;
-    this.indexes = collection.indexes;
-    this.mapReduce = collection.mapReduce;
-    this.stats = collection.stats;
+    this.aggregate = collection.aggregate.bind(collection);
+    this.count = collection.countDocuments.bind(collection);
+    this.distinct = collection.distinct.bind(collection);
+    this.indexes = collection.indexes.bind(collection);
+    this.mapReduce = collection.mapReduce.bind(collection);
+    this.stats = collection.stats.bind(collection);
+    // only Monk method
+    // this.geoHaystackSearch = collection.geoHaystackSearch.bind(collection);
   }
 
   async find(query = {}, opt = { perPage: 100, page: 0 }) {
@@ -38,7 +40,7 @@ class MongoQueryService {
 
     const countOptions = {};
     if (options.session) countOptions.session = options.session;
-    const count = await this._collection.count(query, countOptions);
+    const count = await this._collection.countDocuments(query, countOptions);
     const pagesCount = Math.ceil(count / perPage) || 1;
 
     return {
@@ -49,7 +51,8 @@ class MongoQueryService {
   }
 
   async findOne(query = {}, options = {}) {
-    const { results } = await this.find(query, { limit: 2, ...options });
+    const { results: cursorResult } = await this.find(query, { limit: 2, ...options });
+    const results = await cursorResult.toArray();
 
     if (results.length > 1) {
       throw new MongoServiceError(
@@ -62,7 +65,7 @@ class MongoQueryService {
   }
 
   async exists(query, options = {}) {
-    const count = await this.count(query, { limit: 1, ...options });
+    const count = await this._collection.countDocuments(query, options);
     return count > 0;
   }
 }
