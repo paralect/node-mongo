@@ -1,5 +1,4 @@
 const { MongoClient } = require('mongodb');
-// https://mongodb.github.io/node-mongodb-native/4.1/index.html
 const _ = require('lodash');
 
 const MongoService = require('./mongo-service');
@@ -7,14 +6,13 @@ const MongoQueryService = require('./mongo-query-service');
 
 const logger = global.logger || console;
 
-const connect = (connectionString, settings) => {
+const connect = async (connectionString, settings) => {
   const connectionSettings = _.defaults({}, settings, { connectTimeoutMS: 20000 });
   const client = new MongoClient(connectionString, connectionSettings);
-  client.connect();
+  await client.connect();
   const db = client.db();
 
   client.on('error', (err) => {
-    // https://mongodb.github.io/node-mongodb-native/4.1/classes/MongoClient.html#eventNames
     logger.error(err, 'Failed to connect to the mongodb on start');
     throw err;
   });

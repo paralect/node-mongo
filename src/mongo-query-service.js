@@ -16,27 +16,23 @@ class MongoQueryService {
     this.indexes = collection.indexes.bind(collection);
     this.mapReduce = collection.mapReduce.bind(collection);
     this.stats = collection.stats.bind(collection);
-    // only Monk method
-    // this.geoHaystackSearch = collection.geoHaystackSearch.bind(collection);
   }
 
   async find(query = {}, opt = { perPage: 100, page: 0 }) {
     const options = _.cloneDeep(opt);
     const { page, perPage } = options;
+
     const hasPaging = page > 0;
     if (hasPaging) {
       options.skip = (page - 1) * perPage;
       options.limit = perPage;
     }
+
     delete options.perPage;
     delete options.page;
 
-    const results = await this._collection.find(query, options);
-    if (!hasPaging) {
-      return {
-        results,
-      };
-    }
+    const results = await this._collection.find(query, options).toArray();
+    if (!hasPaging) return { results };
 
     const countOptions = {};
     if (options.session) countOptions.session = options.session;
@@ -51,8 +47,7 @@ class MongoQueryService {
   }
 
   async findOne(query = {}, options = {}) {
-    const { results: cursorResult } = await this.find(query, { limit: 2, ...options });
-    const results = await cursorResult.toArray();
+    const { results } = await this.find(query, { limit: 2, ...options });
 
     if (results.length > 1) {
       throw new MongoServiceError(

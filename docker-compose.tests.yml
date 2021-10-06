@@ -1,0 +1,37 @@
+version: '3.6'
+services:
+  mongo:
+    container_name: mongo
+    image: mongo:4.4
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+    networks:
+      - node-mongo-tests
+    ports:
+      - 27017:27017
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - type: volume
+        source: mongodb
+        target: /data/db
+      - type: volume
+        source: mongodb-cfg
+        target: /data/configdb
+  tests:
+    container_name: tests
+    build:
+      context: .
+      dockerfile: src/test/Dockerfile.test
+    networks:
+      - node-mongo-tests
+    depends_on:
+      - mongo
+
+networks:
+  node-mongo-tests:
+    name: node-mongo-tests-network
+
+volumes:
+  mongodb:
+  mongodb-cfg:
