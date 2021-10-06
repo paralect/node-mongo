@@ -7,15 +7,22 @@ const MongoServiceError = require('../mongo-service-error');
 chai.should();
 chai.use(spies);
 
-const db = require('../index').connect('mongodb://root:root@mongo/node-mongo-tests?authSource=admin');
-
-db.setServiceMethod('createByName', (service, name) => service.create({ name }));
+const { connect } = require('../index');
 
 module.exports = () => {
-  describe('MongoService with default options', () => {
-    const service = db.createService('mongo-service-test');
+  let db;
+  let service;
 
-    before(() => service.atomic.drop());
+  describe('MongoService with default options', async () => {
+    before(async () => {
+      console.log('start connect');
+      db = await connect('mongodb://root:root@mongo/node-mongo-tests?authSource=admin');
+      console.log('connected', db);
+      db.setServiceMethod('createByName', (s, name) => s.create({ name }));
+      service = db.createService('mongo-service-test');
+      service.atomic.drop();
+    });
+
     after(() => service.atomic.drop());
 
     describe('handlers', () => {
@@ -216,7 +223,7 @@ module.exports = () => {
   });
 
   describe('MongoService with disabled auto fields', () => {
-    const service = db.createService('mongo-service-test', {
+    service = db.createService('mongo-service-test', {
       addCreatedOnField: false,
       addUpdatedOnField: false,
       useStringId: false,
@@ -266,7 +273,7 @@ module.exports = () => {
   });
 
   describe('MongoService with `validate` option', () => {
-    const service = db.createService('mongo-service-test', {
+    service = db.createService('mongo-service-test', {
       validate: (object) => {
         if (!object.name) {
           return {

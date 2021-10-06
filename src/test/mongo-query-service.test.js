@@ -13,6 +13,8 @@ module.exports = () => {
     const queryService = db.createQueryService('mongo-query-service-test');
 
     before(async () => {
+      console.log(db);
+      console.log(queryService);
       await queryService._collection.drop();
       await queryService._collection.insert([
         { name: 'Bob' },
