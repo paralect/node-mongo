@@ -222,111 +222,111 @@ module.exports = () => {
     });
   });
 
-  describe('MongoService with disabled auto fields', () => {
-    service = db.createService('mongo-service-test', {
-      addCreatedOnField: false,
-      addUpdatedOnField: false,
-      useStringId: false,
-    });
+  // describe('MongoService with disabled auto fields', () => {
+  //   service = db.createService('mongo-service-test', {
+  //     addCreatedOnField: false,
+  //     addUpdatedOnField: false,
+  //     useStringId: false,
+  //   });
+  //
+  //   before(() => service.atomic.drop());
+  //   after(() => service.atomic.drop());
+  //
+  //   describe('create', () => {
+  //     it('should give you an object with the object `_id` and without `createdOn` field', async () => {
+  //       const name = service.generateId();
+  //       const doc = await service.create({ name });
+  //       doc.should.have.all.keys('_id', 'name');
+  //       doc._id.should.be.a('object');
+  //       doc.name.should.be.equal(name);
+  //     });
+  //   });
+  //
+  //   describe('updateOne', () => {
+  //     it('should give you an updated object without the `updatedOn` field', async () => {
+  //       const createdDoc = await service.create({});
+  //       const updatedDoc = await service.updateOne(
+  //         { _id: createdDoc._id },
+  //         (doc) => ({ ...doc, name: '' }),
+  //       );
+  //       updatedDoc.should.have.all.keys('_id', 'name');
+  //       updatedDoc.name.should.be.equal('');
+  //     });
+  //   });
+  //
+  //   describe('updateMany', () => {
+  //     it('should give you an array of updated objects without the `updatedOn` field', async () => {
+  //       const name = service.generateId();
+  //       const createdDocs = await service.create([{ name }, { name }]);
+  //       const updatedDocs = await service.updateMany(
+  //         { name },
+  //         (doc) => ({ ...doc, name: '' }),
+  //       );
+  //       updatedDocs.should.be.a('array');
+  //       updatedDocs.forEach((updatedDoc, index) => {
+  //         updatedDoc.should.have.all.keys('_id', 'name');
+  //         updatedDoc._id.should.be.deep.equal(createdDocs[index]._id);
+  //         updatedDoc.name.should.be.equal('');
+  //       });
+  //     });
+  //   });
+  // });
+  //
+  // describe('MongoService with `validate` option', () => {
+  //   service = db.createService('mongo-service-test', {
+  //     validate: (object) => {
+  //       if (!object.name) {
+  //         return {
+  //           value: object,
+  //           error: {
+  //             details: [{ message: 'Name is required' }],
+  //           },
+  //         };
+  //       }
+  //
+  //       return { value: object };
+  //     },
+  //   });
+  //
+  //   before(() => service.atomic.drop());
+  //   after(() => service.atomic.drop());
+  //
+  //   describe('create', () => {
+  //     it('should throw an error if input is invalid', async () => {
+  //       try {
+  //         await service.create({ name: '' });
+  //       } catch (error) {
+  //         error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
+  //       }
+  //     });
+  //   });
+  //
+  //   describe('updateOne', () => {
+  //     it('should throw an error if input is invalid', async () => {
+  //       try {
+  //         const createdDoc = await service.create({ _id: service.generateId() });
+  //         await service.updateOne(
+  //           { _id: createdDoc._id },
+  //           (doc) => ({ ...doc, name: '' }),
+  //         );
+  //       } catch (error) {
+  //         error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
+  //       }
+  //     });
+  //   });
 
-    before(() => service.atomic.drop());
-    after(() => service.atomic.drop());
-
-    describe('create', () => {
-      it('should give you an object with the object `_id` and without `createdOn` field', async () => {
-        const name = service.generateId();
-        const doc = await service.create({ name });
-        doc.should.have.all.keys('_id', 'name');
-        doc._id.should.be.a('object');
-        doc.name.should.be.equal(name);
-      });
-    });
-
-    describe('updateOne', () => {
-      it('should give you an updated object without the `updatedOn` field', async () => {
-        const createdDoc = await service.create({});
-        const updatedDoc = await service.updateOne(
-          { _id: createdDoc._id },
-          (doc) => ({ ...doc, name: '' }),
-        );
-        updatedDoc.should.have.all.keys('_id', 'name');
-        updatedDoc.name.should.be.equal('');
-      });
-    });
-
-    describe('updateMany', () => {
-      it('should give you an array of updated objects without the `updatedOn` field', async () => {
-        const name = service.generateId();
-        const createdDocs = await service.create([{ name }, { name }]);
-        const updatedDocs = await service.updateMany(
-          { name },
-          (doc) => ({ ...doc, name: '' }),
-        );
-        updatedDocs.should.be.a('array');
-        updatedDocs.forEach((updatedDoc, index) => {
-          updatedDoc.should.have.all.keys('_id', 'name');
-          updatedDoc._id.should.be.deep.equal(createdDocs[index]._id);
-          updatedDoc.name.should.be.equal('');
-        });
-      });
-    });
-  });
-
-  describe('MongoService with `validate` option', () => {
-    service = db.createService('mongo-service-test', {
-      validate: (object) => {
-        if (!object.name) {
-          return {
-            value: object,
-            error: {
-              details: [{ message: 'Name is required' }],
-            },
-          };
-        }
-
-        return { value: object };
-      },
-    });
-
-    before(() => service.atomic.drop());
-    after(() => service.atomic.drop());
-
-    describe('create', () => {
-      it('should throw an error if input is invalid', async () => {
-        try {
-          await service.create({ name: '' });
-        } catch (error) {
-          error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
-        }
-      });
-    });
-
-    describe('updateOne', () => {
-      it('should throw an error if input is invalid', async () => {
-        try {
-          const createdDoc = await service.create({ _id: service.generateId() });
-          await service.updateOne(
-            { _id: createdDoc._id },
-            (doc) => ({ ...doc, name: '' }),
-          );
-        } catch (error) {
-          error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
-        }
-      });
-    });
-
-    describe('updateMany', () => {
-      it('should throw an error if input is invalid', async () => {
-        try {
-          const createdDoc = await service.create({ _id: service.generateId() });
-          await service.updateMany(
-            { _id: createdDoc._id },
-            (doc) => ({ ...doc, name: '' }),
-          );
-        } catch (error) {
-          error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
-        }
-      });
-    });
-  });
+    // describe('updateMany', () => {
+    //   it('should throw an error if input is invalid', async () => {
+    //     try {
+    //       const createdDoc = await service.create({ _id: service.generateId() });
+    //       await service.updateMany(
+    //         { _id: createdDoc._id },
+    //         (doc) => ({ ...doc, name: '' }),
+    //       );
+    //     } catch (error) {
+    //       error.code.should.be.equal(MongoServiceError.INVALID_SCHEMA);
+    //     }
+    //   });
+    // });
+  // });
 };
