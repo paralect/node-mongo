@@ -1,20 +1,21 @@
 const chai = require('chai');
 
-const MongoServiceError = require('./mongo-service-error');
-const config = require('./config/test');
+const { connect } = require('../index');
+const config = require('./config.json');
+const MongoServiceError = require('../mongo-service-error');
 
 const should = chai.should();
 
-const db = require('.').connect(config.mongo.connection);
-
-db.setQueryServiceMethod('findOneByName', (service, name) => service.findOne({ name }));
+let db;
+let queryService;
 
 module.exports = () => {
   describe('MongoQueryService', () => {
-    const queryService = db.createQueryService('mongo-query-service-test');
-
     before(async () => {
-      await queryService._collection.drop();
+      db = await connect(config.mongo.connection);
+      db.setQueryServiceMethod('findOneByName', (service, name) => service.findOne({ name }));
+      queryService = db.createQueryService('mongo-query-service-test');
+
       await queryService._collection.insert([
         { name: 'Bob' },
         { name: 'Alice' },

@@ -1,0 +1,5 @@
+{
+  "mongo": {
+    "connection": "mongodb://root:root@mongo/node-mongo-tests?authSource=admin&replicaSet=rs"
+  }
+}

@@ -1,23 +1,25 @@
 /* eslint-disable no-unused-expressions */
-
 const chai = require('chai');
 const spies = require('chai-spies');
 
-const MongoServiceError = require('./mongo-service-error');
-const config = require('./config/test');
+const { connect } = require('../index');
+const config = require('./config.json');
+const MongoServiceError = require('../mongo-service-error');
 
 chai.should();
 chai.use(spies);
 
-const db = require('.').connect(config.mongo.connection);
+let db;
+let service;
 
-db.setServiceMethod('createByName', (service, name) => service.create({ name }));
-
-module.exports = () => {
-  describe('MongoService with default options', () => {
-    const service = db.createService('mongo-service-test');
-
-    before(() => service.atomic.drop());
+module.exports = async () => {
+  describe('MongoService with default options', async () => {
+    before(async () => {
+      db = await connect(config.mongo.connection);
+      db.setServiceMethod('createByName', (s, name) => s.create({ name }));
+      service = db.createService('mongo-service-test');
+      service.atomic.drop();
+    });
     after(() => service.atomic.drop());
 
     describe('handlers', () => {
@@ -218,13 +220,14 @@ module.exports = () => {
   });
 
   describe('MongoService with disabled auto fields', () => {
-    const service = db.createService('mongo-service-test', {
-      addCreatedOnField: false,
-      addUpdatedOnField: false,
-      useStringId: false,
+    before(() => {
+      service = db.createService('mongo-service-test', {
+        addCreatedOnField: false,
+        addUpdatedOnField: false,
+        useStringId: false,
+      });
+      service.atomic.drop();
     });
-
-    before(() => service.atomic.drop());
     after(() => service.atomic.drop());
 
     describe('create', () => {
@@ -268,23 +271,23 @@ module.exports = () => {
   });
 
   describe('MongoService with `validate` option', () => {
-    const service = db.createService('mongo-service-test', {
-      validate: (object) => {
-        if (!object.name) {
-          return {
-            value: object,
-            error: {
-              details: [{ message: 'Name is required' }],
-            },
-          };
-        }
+    before(() => {
+      service = db.createService('mongo-service-test', {
+        validate: (object) => {
+          if (!object.name) {
+            return {
+              value: object,
+              error: {
+                details: [{ message: 'Name is required' }],
+              },
+            };
+          }
 
-        return { value: object };
-      },
+          return { value: object };
+        },
+      });
+      service.atomic.drop();
     });
-
-    before(() => service.atomic.drop());
-    after(() => service.atomic.drop());
 
     describe('create', () => {
       it('should throw an error if input is invalid', async () => {

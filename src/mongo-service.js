@@ -23,28 +23,7 @@ class MongoService extends MongoQueryService {
 
     this.generateId = () => (new ObjectId()).toHexString();
 
-    this.atomic = {
-      bulkWrite: collection.bulkWrite,
-      createIndex: collection.createIndex,
-      drop: collection.drop,
-      dropIndex: collection.dropIndex,
-      dropIndexes: collection.dropIndexes,
-      findOneAndDelete: collection.findOneAndDelete,
-      findOneAndUpdate: collection.findOneAndUpdate,
-      insert: collection.insertOne,
-      remove: collection.deleteOne,
-      update: collection.updateOne,
-    };
-    this.atomic.bulkWrite = collection.bulkWrite.bind(collection);
-    this.atomic.createIndex = collection.createIndex.bind(collection);
-    this.atomic.drop = collection.drop.bind(collection);
-    this.atomic.dropIndex = collection.dropIndex.bind(collection);
-    this.atomic.dropIndexes = collection.dropIndexes.bind(collection);
-    this.atomic.findOneAndDelete = collection.findOneAndDelete.bind(collection);
-    this.atomic.findOneAndUpdate = collection.findOneAndUpdate.bind(collection);
-    this.atomic.insert = collection.insertOne.bind(collection);
-    this.atomic.remove = collection.deleteOne.bind(collection);
-    this.atomic.update = collection.updateOne.bind(collection);
+    this.atomic = collection;
   }
 
   static _deepCompare(data, initialData, properties) {
@@ -120,18 +99,17 @@ class MongoService extends MongoQueryService {
       if (this._options.addCreatedOnField && !entity.createdOn) {
         entity.createdOn = new Date().toISOString();
       }
-      const validated = await this._validate(entity);
 
-      return validated;
+      return this._validate(entity);
     }));
 
-    const createCallback = (doc) => {
+    await this._collection.insertMany(created, options);
+
+    created.forEach((doc) => {
       this._bus.emit('created', {
         doc,
       });
-    };
-
-    await this._collection.insertMany(created, options, createCallback);
+    });
 
     return created.length > 1 ? created : created[0];
   }
@@ -160,19 +138,16 @@ class MongoService extends MongoQueryService {
     entity = await updateFn(entity);
     const updated = await this._validate(entity);
 
-    const updateCallback = () => {
-      this._bus.emit('updated', {
-        doc: updated,
-        prevDoc: doc,
-      });
-    };
-
-    await this._collection.updateOne(
-      { ...query, _id: doc._id },
-      { $set: updated },
+    await this._collection.replaceOne(
+      { _id: doc._id },
+      updated,
       options,
-      updateCallback,
     );
+
+    this._bus.emit('updated', {
+      doc: updated,
+      prevDoc: doc,
+    });
 
     return updated;
   }
@@ -188,32 +163,30 @@ class MongoService extends MongoQueryService {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
     const { results } = await this.find(query, findOptions);
-    const docs = await results.toArray();
-    if (docs.length === 0) return [];
 
-    const updated = await Promise.all(docs.map(async (doc) => {
+    if (results.length === 0) return [];
+
+    const updated = await Promise.all(results.map(async (doc) => {
       let entity = _.cloneDeep(doc);
 
       if (this._options.addUpdatedOnField) entity.updatedOn = new Date().toISOString();
       entity = await updateFn(entity);
-      const validated = await this._validate(entity);
 
-      return validated;
+      return this._validate(entity);
     }));
 
-    const updateCallback = (doc) => {
+    await Promise.all((updated.map((doc) => this._collection.replaceOne(
+      { _id: doc._id },
+      doc,
+      options,
+    ))));
+
+    updated.forEach((doc, index) => {
       this._bus.emit('updated', {
         doc,
-        prevDoc: docs.find((d) => d._id === doc._id),
+        prevDoc: results[index],
       });
-    };
-
-    await this._collection.updateMany(
-      { ...query, _id: { $in: updated.map((doc) => doc._id) } },
-      updateFn,
-      options,
-      updateCallback,
-    );
+    });
 
     return updated;
   }
@@ -221,13 +194,15 @@ class MongoService extends MongoQueryService {
   async remove(query, options = {}) {
     const findOptions = {};
     if (options.session) findOptions.session = options.session;
+    const removed = await this.find(query, findOptions);
 
-    const deleteCallback = (doc) => {
+    await this._collection.deleteMany(query, options);
+
+    removed.results.forEach((doc) => {
       this._bus.emit('removed', {
         doc,
       });
-    };
-    const removed = await this._collection.deleteMany(query, options, deleteCallback);
+    });
 
     return removed;
   }
