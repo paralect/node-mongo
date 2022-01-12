@@ -7,7 +7,7 @@ Node Mongo is reactive extension to MongoDB API. It provides few usability impro
 
 ## Features
 
-* ️️**Reactive**. Fires events as document stored, updated or deleted from database
+* ️️**Reactive**. Fires transactional events as document stored, updated or deleted from database
 * **Paging**. Implements high level paging API
 * **Schema validation**. Validates your data before save
 
