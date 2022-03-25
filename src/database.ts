@@ -10,7 +10,7 @@ import {
 import ServiceOptions from './types/ServiceOptions';
 import Service from './service';
 import logger from './logger';
-import OutboxService from './outbox/outboxService';
+import OutboxService from './outboxService';
 
 const defaultOptions = {
   useNewUrlParser: true,

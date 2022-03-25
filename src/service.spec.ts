@@ -1,10 +1,15 @@
-import * as chai from 'chai';
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+import chai from 'chai';
+import spies from 'chai-spies';
+
 import { DateTime } from 'luxon';
-import { Database } from './index';
+import { Database, inMemoryEventBus } from './index';
+
 import 'mocha';
 
 import config from './config';
 
+chai.use(spies);
 chai.should();
 const { assert } = chai;
 
@@ -88,5 +93,39 @@ describe('mongo/service.ts', () => {
       .toJSDate();
     assert.exists(updatedUser?.deletedOn);
     assert.isTrue((updatedUser?.deletedOn as Date) <= nowPlus2Seconds);
+  });
+
+  describe('dbChangesPublisher', () => {
+    const collectionName = 'dbChanges';
+    const service = database.createService<any>(collectionName, {
+      outbox: false,
+    });
+
+    after(async () => {
+      await service.remove({});
+    });
+
+    it('should publish entity.created event on create', async () => {
+      const spy = chai.spy();
+      inMemoryEventBus.on(`${collectionName}.created`, spy);
+      await service.create({});
+      spy.should.have.been.called.at.least(1);
+    });
+
+    it('should publish entity.updated event on update', async () => {
+      const spy = chai.spy();
+      inMemoryEventBus.on(`${collectionName}.updated`, spy);
+      const doc = await service.create({});
+      await service.update({ _id: doc._id }, () => ({ newField: true }));
+      spy.should.have.been.called.at.least(1);
+    });
+
+    it('should publish entity.removed event when document removed', async () => {
+      const spy = chai.spy();
+      inMemoryEventBus.on(`${collectionName}.removed`, spy);
+      const doc = await service.create({});
+      await service.remove({ _id: doc._id });
+      spy.should.have.been.called.at.least(1);
+    });
   });
 });

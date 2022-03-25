@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/chai": "4.2.16",
+    "@types/chai-spies": "^1.0.3",
     "@types/deep-diff": "1.0.0",
     "@types/hapi__joi": "17.1.6",
     "@types/lodash": "4.14.168",

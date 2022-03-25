@@ -6,18 +6,12 @@ import {
   BulkWriteOptions,
   CollectionOptions,
 } from 'mongodb';
-import { generateId } from '../idGenerator';
-import OutboxEvent from './outboxEvent';
+import {
+  DbChangeData, IChangePublisher, PublishEventOptions, OutboxEvent, DbChangeType,
+} from './types';
+import { generateId } from './idGenerator';
 
-export type EventType = 'create' | 'update' | 'remove';
-
-export interface CreateOutboxEventData {
-  type: EventType;
-  data: any;
-  diff?: any[];
-}
-
-class OutboxService {
+class OutboxService implements IChangePublisher {
   private getOrCreateCollection: <T>(
     name: string,
     opt: {
@@ -72,9 +66,10 @@ class OutboxService {
     return collection;
   };
 
-  async createEvent(
+  private async createEvent(
     collectionName: string,
-    data: CreateOutboxEventData,
+    changeType: DbChangeType,
+    data: DbChangeData,
     option: InsertOneOptions = {},
   ): Promise<OutboxEvent | null> {
     await this.waitForConnection();
@@ -86,6 +81,7 @@ class OutboxService {
     const event: OutboxEvent = {
       _id: generateId(),
       createdOn: DateTime.utc().toJSDate(),
+      type: changeType,
       ...data,
     };
 
@@ -94,9 +90,10 @@ class OutboxService {
     return event;
   }
 
-  async createManyEvents(
+  private async createManyEvents(
     collectionName: string,
-    data: CreateOutboxEventData[],
+    changeType: DbChangeType,
+    data: DbChangeData[],
     option: BulkWriteOptions = {},
   ): Promise<OutboxEvent[] | null> {
     await this.waitForConnection();
@@ -108,12 +105,33 @@ class OutboxService {
     const events: OutboxEvent[] = data.map((e) => ({
       _id: generateId(),
       createdOn: DateTime.utc().toJSDate(),
+      type: changeType,
       ...e,
     }));
 
     await collection.insertMany(events, option);
 
     return events;
+  }
+
+  async publishDbChange(
+    collectionName: string,
+    changeType: DbChangeType,
+    eventData: DbChangeData,
+    options?: PublishEventOptions,
+  ): Promise<void> {
+    await this.createEvent(collectionName, changeType, eventData, { session: options?.session });
+  }
+
+  async publishDbChanges(
+    collectionName: string,
+    changeType: DbChangeType,
+    eventsData: DbChangeData[],
+    options?: PublishEventOptions,
+  ): Promise<void> {
+    await this.createManyEvents(
+      collectionName, changeType, eventsData, { session: options?.session },
+    );
   }
 }
 

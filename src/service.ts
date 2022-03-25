@@ -20,8 +20,9 @@ import {
 import logger from './logger';
 import ServiceOptions from './types/ServiceOptions';
 import { generateId } from './idGenerator';
-import OutboxService from './outbox/outboxService';
+import inMemoryPublisher from './dbChangePublisher';
 import IDatabase from './types/IDatabase';
+import { DbChangeData, IChangePublisher } from './types';
 
 const defaultOptions: ServiceOptions = {
   addCreatedOnField: true,
@@ -69,7 +70,7 @@ class Service<T extends Document> {
 
   private waitForConnection: () => Promise<void>;
 
-  private outboxService: OutboxService;
+  private changePublisher: IChangePublisher;
 
   constructor(
     collectionName: string,
@@ -83,7 +84,11 @@ class Service<T extends Document> {
       ...options,
     };
     this.waitForConnection = db.waitForConnection;
-    this.outboxService = db.getOutboxService();
+    if (this.options.outbox) {
+      this.changePublisher = db.getOutboxService();
+    } else {
+      this.changePublisher = inMemoryPublisher;
+    }
     this.collection = null;
 
     this.db.getClient()
@@ -282,12 +287,9 @@ class Service<T extends Document> {
         return;
       }
 
-      if (this.options.outbox) {
-        await this.outboxService.createManyEvents(this._collectionName, validEntities.map((e) => ({
-          type: 'create',
-          data: e,
-        })), { session });
-      }
+      await this.changePublisher.publishDbChanges(this._collectionName, 'create', validEntities.map((e) => ({
+        data: e,
+      })), { session });
 
       await collection.insertMany(
         validEntities as OptionalUnlessRequiredId<T>[],
@@ -346,14 +348,14 @@ class Service<T extends Document> {
       } as Filter<T>, { $set: validatedDoc }, { session });
       isUpdated = updateResult.modifiedCount === 1;
 
-      if (isUpdated && this.options.outbox) {
-        await this.outboxService.createEvent(this._collectionName, {
-          type: 'update',
+      if (isUpdated) {
+        const change: DbChangeData = {
           data: {
             ...validatedDoc,
           },
           diff: diff(prevDoc, validatedDoc),
-        }, { session });
+        };
+        await this.changePublisher.publishDbChange(this._collectionName, 'update', change, { session });
       }
     };
 
@@ -386,13 +388,12 @@ class Service<T extends Document> {
     }
 
     const transactionRemoveSoft = async (session: ClientSession) => {
-      if (this.options.outbox) {
-        await this.outboxService.createManyEvents(this._collectionName, docs.map((doc: any) => ({
-          type: 'remove',
-          entity: this._collectionName,
-          data: doc,
-        })), { session });
-      }
+      const dbChanges = docs.map((doc: any) => ({
+        entity: this._collectionName,
+        data: doc,
+      }));
+
+      await this.changePublisher.publishDbChanges(this._collectionName, 'remove', dbChanges, { session });
 
       const uq: any = {
         $set: {
@@ -435,14 +436,12 @@ class Service<T extends Document> {
     }
 
     const transactionRemove = async (session: ClientSession) => {
-      if (this.options.outbox) {
-        await this.outboxService.createManyEvents(this._collectionName, docs.map((doc: any) => ({
-          type: 'remove',
-          entity: this._collectionName,
-          data: doc,
-        })), { session });
-      }
-
+      const changes = docs.map((doc: any) => ({
+        type: 'remove',
+        entity: this._collectionName,
+        data: doc,
+      }));
+      await this.changePublisher.publishDbChanges(this._collectionName, 'remove', changes, { session });
       await collection.deleteMany(query, { session });
     };
 

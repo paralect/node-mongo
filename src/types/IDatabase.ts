@@ -5,7 +5,7 @@ import {
   CollectionOptions,
 } from 'mongodb';
 
-import OutboxService from '../outbox/outboxService';
+import OutboxService from '../outboxService';
 
 export default interface IDatabase {
   getOutboxService: () => OutboxService;
