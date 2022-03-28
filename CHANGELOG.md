@@ -1,3 +1,13 @@
+## v3.0.0 (2022-03-28)
+
+The release includes a lot of changes to make sure that the package is compatible with the latest MongoDB version.
+Most notable changes:
+- Rewritten in typescript
+- Removed [monk](https://github.com/Automattic/monk) dependency.
+- Added [mongodb native Node.JS sdk](https://www.mongodb.com/docs/drivers/node/current/) as dependency. 
+- Added support for transactional events using [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html)
+- Introduced shared in-memory events bus. It should be used to listen for CUD updates.
+
 ## v2.1.0 (2020-10-15)
 
 ### Features

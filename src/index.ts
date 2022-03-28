@@ -1,4 +1,5 @@
 import { ClientSession } from 'mongodb';
+import { InMemoryEvent } from './types';
 
 import Database from './database';
 import Service from './service';
@@ -17,6 +18,7 @@ export {
 
 export {
   inMemoryEventBus,
+  InMemoryEvent,
 };
 
 export default Database;
