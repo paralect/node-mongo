@@ -11,7 +11,7 @@ export interface DbChangeData {
 
 export type InMemoryEvent<T = any, TChange = any> = {
   name: string;
-  createdOn: Date;
+  createdOn: string;
   userId?: string;
   data: {
     object: T,
@@ -46,5 +46,5 @@ export type OutboxEvent = {
   type: 'create' | 'update' | 'remove';
   data: any;
   diff?: any[];
-  createdOn: Date;
+  createdOn: string;
 };

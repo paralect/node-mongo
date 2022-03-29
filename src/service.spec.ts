@@ -2,7 +2,6 @@
 import chai from 'chai';
 import spies from 'chai-spies';
 
-import { DateTime } from 'luxon';
 import { Database, inMemoryEventBus } from './index';
 
 import 'mocha';
@@ -17,9 +16,9 @@ const database = new Database(config.mongo.connection, config.mongo.dbName);
 
 type UserType = {
   _id: string;
-  createdOn: Date;
+  createdOn: string;
   fullName: string;
-  deletedOn: Date;
+  deletedOn: string;
 };
 
 const usersService = database.createService<UserType>('users', {
@@ -87,12 +86,7 @@ describe('mongo/service.ts', () => {
       _id: u?._id,
     }, { doNotAddDeletedOn: true });
 
-    const nowPlus2Seconds = DateTime
-      .utc()
-      .plus({ seconds: 1 })
-      .toJSDate();
     assert.exists(updatedUser?.deletedOn);
-    assert.isTrue((updatedUser?.deletedOn as Date) <= nowPlus2Seconds);
   });
 
   describe('dbChangesPublisher', () => {

@@ -1,5 +1,4 @@
 import { cloneDeep, isArray } from 'lodash';
-import { DateTime } from 'luxon';
 import { diff } from 'deep-diff';
 import {
   ChangeStreamOptions,
@@ -38,9 +37,9 @@ const transactionOptions: TransactionOptions = {
 
 export type Document = {
   _id?: string;
-  updatedOn?: Date;
-  deletedOn?: Date | null;
-  createdOn?: Date;
+  updatedOn?: string;
+  deletedOn?: string | null;
+  createdOn?: string;
 };
 
 export type FindResult<T> = {
@@ -273,10 +272,10 @@ class Service<T extends Document> {
       }
 
       if (!entity.createdOn && this.options.addCreatedOnField) {
-        entity.createdOn = DateTime.utc().toJSDate();
+        entity.createdOn = new Date().toISOString();
       }
       if (!entity.updatedOn && this.options.addUpdatedOnField) {
-        entity.updatedOn = DateTime.utc().toJSDate();
+        entity.updatedOn = new Date().toISOString();
       }
 
       return this.validateSchema(entity);
@@ -326,7 +325,7 @@ class Service<T extends Document> {
 
     const prevDoc = cloneDeep(doc);
     if (this.options.addUpdatedOnField) {
-      doc.updatedOn = DateTime.utc().toJSDate();
+      doc.updatedOn = new Date().toISOString();
     }
 
     // Update function can return full document for update or partial
@@ -397,7 +396,7 @@ class Service<T extends Document> {
 
       const uq: any = {
         $set: {
-          deletedOn: DateTime.utc().toJSDate(),
+          deletedOn: new Date().toISOString(),
         },
       };
 

@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon';
 import {
   Collection,
   CreateCollectionOptions,
@@ -80,7 +79,7 @@ class OutboxService implements IChangePublisher {
 
     const event: OutboxEvent = {
       _id: generateId(),
-      createdOn: DateTime.utc().toJSDate(),
+      createdOn: new Date().toISOString(),
       type: changeType,
       ...data,
     };
@@ -104,7 +103,7 @@ class OutboxService implements IChangePublisher {
 
     const events: OutboxEvent[] = data.map((e) => ({
       _id: generateId(),
-      createdOn: DateTime.utc().toJSDate(),
+      createdOn: new Date().toISOString(),
       type: changeType,
       ...e,
     }));

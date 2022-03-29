@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { DateTime } from 'luxon';
+
 import {
   InMemoryEvent, InMemoryEventHandler,
 } from './types';
@@ -18,7 +18,7 @@ class EventBus {
       ...event,
     };
     if (!evtCopy.createdOn) {
-      evtCopy.createdOn = DateTime.utc().toJSDate();
+      evtCopy.createdOn = new Date().toISOString();
     }
 
     this._bus.emit(name, evtCopy);
