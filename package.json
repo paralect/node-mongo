@@ -8,7 +8,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "tests": "./bin/run-tests.sh",
-    "n": "run-s test:*",
+    "all": "run-s test:*",
     "test:eslint": "tsc --noEmit && eslint \"**/*.{js,ts}\" --quiet --fix",
     "test:mocha": "NODE_ENV=test mocha --exit --timeout 20000 -r ts-node/register src/**/*.spec.ts src/*.spec.ts",
     "build": "tsc"
@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@types/chai": "4.2.16",
-    "@types/chai-spies": "^1.0.3",
+    "@types/chai-spies": "1.0.3",
     "@types/deep-diff": "1.0.0",
     "@types/hapi__joi": "17.1.6",
     "@types/lodash": "4.14.168",

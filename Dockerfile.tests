@@ -8,4 +8,4 @@ COPY . .
 
 RUN npm run build
 
-CMD npm run n
+CMD npm run all
