@@ -5,6 +5,7 @@ import Database from './database';
 import Service from './service';
 import { generateId } from './idGenerator';
 import inMemoryEventBus from './inMemoryEventBus';
+import ServiceOptions from './types/ServiceOptions';
 
 export {
   Database,
@@ -14,6 +15,7 @@ export {
 
 export {
   ClientSession,
+  ServiceOptions,
 };
 
 export {
