@@ -56,6 +56,12 @@ type GeneralRequestOptions = {
   doNotAddDeletedOn?: boolean;
 };
 
+type ExtendedFindOptions = FindOptions & {
+  doNotAddDeletedOn?: boolean;
+  page: number;
+  perPage: number;
+};
+
 class Service<T extends Document> {
   private client?: MongoClient;
 
@@ -176,10 +182,7 @@ class Service<T extends Document> {
 
   find = async (
     query: Filter<T> = {},
-    options: GeneralRequestOptions & {
-      page: number;
-      perPage: number;
-    } = { perPage: 100, page: 0 },
+    options: ExtendedFindOptions = { perPage: 100, page: 0 },
   ): Promise<FindResult<T>> => {
     const collection = await this.getCollection();
 
