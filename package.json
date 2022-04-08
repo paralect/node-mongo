@@ -1,6 +1,6 @@
 {
   "name": "@paralect/node-mongo",
-  "version": "3.0.0-beta2",
+  "version": "3.0.0-beta3",
   "author": "Paralect",
   "description": "Reactive MongoDB wrapper for Node.JS",
   "private": false,

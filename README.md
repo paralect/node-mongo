@@ -3,7 +3,7 @@
 
 [![npm version](https://badge.fury.io/js/%40paralect%2Fnode-mongo.svg)](https://badge.fury.io/js/%40paralect%2Fnode-mongo)
 
-Node Mongo is reactive extension to MongoDB API. It provides few usability improvements to the [monk](https://github.com/Automattic/monk) API.
+Node Mongo is reactive extension to MongoDB API.
 
 ## Features
 
